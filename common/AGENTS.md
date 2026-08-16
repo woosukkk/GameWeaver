@@ -36,6 +36,7 @@ Do not guess a missing command. Inspect the repository configuration first; if i
 
 ## Command execution
 
+- Treat a change, build, or fix request as authorization for all safe, reversible, project-local subtasks and checks needed to complete it; do not request separate confirmation for each step.
 - Run read-only inspection and project-local setup, tests, linters, formatters, type checks, and builds without asking for confirmation.
 - Create ordinary project-local caches, temporary files, build output, and test artifacts required by those checks without asking.
 - Install dependencies already declared by the project when required to run its checks, provided this does not require system-wide changes.
