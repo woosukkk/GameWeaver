@@ -11,5 +11,31 @@
 - `templates/`: 기술 스택별 프로젝트 템플릿
 - `scripts/`: 프로젝트 초기화 스크립트
 
-`common/AGENTS.md`의 `TODO` 색인과 명령은 새 프로젝트를 시작할 때 실제 값으로 교체합니다.
 Git 협업 규칙의 원본은 `common/CONTRIBUTING.md`이며, GitHub 템플릿은 해당 규칙에 맞춰 관리합니다.
+
+## Project TODO
+
+새 프로젝트를 시작할 때 아래 값만 실제 프로젝트 정보로 교체합니다. 확인되지 않은 값은 추측하지 않고 `TODO`로 유지합니다.
+
+### Index
+
+- Purpose: TODO
+- Tech stack: TODO
+- Main application: `TODO`
+- Tests: `TODO`
+- Configuration: `TODO`
+- Documentation: `TODO`
+
+### Commands
+
+- Install: `TODO`
+- Run: `TODO`
+- Test: `TODO`
+- Lint/format: `TODO`
+- Build: `TODO`
+
+### Documentation
+
+- Architecture: `TODO`
+- Development guide: `TODO`
+- Deployment/operations: `TODO`
