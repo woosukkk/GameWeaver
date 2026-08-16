@@ -21,8 +21,11 @@ body:
   - type: textarea
     id: expected
     attributes:
-      label: 기대 결과
-      description: 기능이 추가되면 어떻게 동작해야 하는지 작성해 주세요.
+      label: 완료 조건
+      description: 기능이 완료됐다고 판단할 수 있는 조건을 체크리스트로 작성해 주세요.
+      placeholder: |
+        - [ ] 사용자가 ...할 수 있다
+        - [ ] 관련 검사가 통과한다
     validations:
       required: true
   - type: textarea

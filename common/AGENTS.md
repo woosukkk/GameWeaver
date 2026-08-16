@@ -47,10 +47,14 @@ Do not guess a missing command. Inspect the repository configuration first; if i
 
 - Inspect Git status before editing and preserve unrelated work.
 - Follow `CONTRIBUTING.md` as the source of truth for branch, commit, issue, and pull request conventions.
+- Before starting a feature or bug fix, search open issues for the same work. Reuse a matching issue; if none exists, create one from the appropriate template. Keep one issue per feature or bug, not one issue per push or commit.
+- Include the issue number in the branch name, such as `feature/123-user-login` or `hotfix/123-login-error`.
 - Never commit directly to `main` or `develop`.
-- Create `feature/<short-name>` from `develop` for normal work and `hotfix/<short-name>` from `main` for urgent release fixes, without asking for confirmation.
+- Create `feature/<issue-number>-<short-name>` from `develop` for normal work and `hotfix/<issue-number>-<short-name>` from `main` for urgent release fixes, without asking for confirmation.
 - After completing and validating a requested change, create a focused commit containing only the task-related files.
 - Choose the commit message without asking. Use `<type>: <subject>` with the appropriate type defined in `CONTRIBUTING.md` and an accurate summary of the completed task.
+- Add `Refs #<issue-number>` to the commit body and feature-to-`develop` pull request. Use `Closes #<issue-number>` only in a pull request targeting `main` so the issue closes with the stable release.
+- Put the implementation summary and validation results in the pull request. Do not duplicate GitHub's commit history with an issue comment for every push; comment only for a meaningful decision, blocker, or status change.
 - Do not push commits or branches to any remote unless the user explicitly requests it.
 - Do not amend existing commits, force-push, rebase shared history, or otherwise rewrite history unless explicitly requested.
 

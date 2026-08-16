@@ -13,28 +13,30 @@
 
 ### 일반 작업 흐름
 
-1. `develop`에서 `feature/<short-name>` 브랜치를 생성합니다.
-2. 기능을 개발하고 관련 검사를 실행합니다.
-3. `feature/*`에서 `develop`을 대상으로 Pull Request를 생성합니다.
-4. `develop`에서 통합 테스트를 진행합니다.
-5. 발표 또는 배포 가능한 시점에 `develop`에서 `main`으로 Pull Request를 생성합니다.
-6. `main`에는 안정 버전만 유지합니다.
+1. 열린 이슈에서 같은 작업을 찾고, 없으면 기능 또는 버그 이슈를 생성합니다.
+2. `develop`에서 `feature/<issue-number>-<short-name>` 브랜치를 생성합니다.
+3. 기능을 개발하고 관련 검사를 실행합니다.
+4. `feature/*`에서 `develop`을 대상으로 Pull Request를 생성하고 `Refs #<issue-number>`를 작성합니다.
+5. `develop`에서 통합 테스트를 진행합니다.
+6. 발표 또는 배포 가능한 시점에 `develop`에서 `main`으로 Pull Request를 생성하고 `Closes #<issue-number>`를 작성합니다.
+7. `main`에는 안정 버전만 유지합니다.
 
 ```text
 main
 └── develop
-    ├── feature/frontend-init
-    ├── feature/backend-auth
-    ├── feature/wiki-crud
-    ├── feature/rag-chatbot
-    └── feature/docs-erd
+    ├── feature/12-frontend-init
+    ├── feature/13-backend-auth
+    ├── feature/14-wiki-crud
+    ├── feature/15-rag-chatbot
+    └── feature/16-docs-erd
 ```
 
 ### 긴급 수정 흐름
 
-1. `main`에서 `hotfix/<short-name>` 브랜치를 생성합니다.
-2. 수정과 검증 후 `main`을 대상으로 Pull Request를 생성합니다.
-3. 완료된 수정사항을 `develop`에도 반영합니다.
+1. 관련 버그 이슈를 찾거나 생성합니다.
+2. `main`에서 `hotfix/<issue-number>-<short-name>` 브랜치를 생성합니다.
+3. 수정과 검증 후 `main`을 대상으로 Pull Request를 생성하고 `Closes #<issue-number>`를 작성합니다.
+4. 완료된 수정사항을 `develop`에도 반영합니다.
 
 ## 커밋 규칙
 
@@ -57,6 +59,13 @@ main
 
 ```text
 feat: 사용자 로그인 기능 추가
+
+Refs #12
+```
+
+이슈 하나는 기능 또는 버그 하나를 추적합니다. 푸시나 커밋마다 새 이슈를 만들지 않습니다.
+
+```text
 fix: 빈 문서 저장 오류 수정
 docs: API 명세 갱신
 ```
@@ -74,7 +83,7 @@ docs: API 명세 갱신
 본문에는 다음 내용을 포함합니다.
 
 - 추가하거나 수정한 기능명
-- 관련 이슈가 있다면 이슈 번호
+- 관련 이슈 번호 (`develop` 대상은 `Refs #123`, `main` 대상은 `Closes #123`)
 - 어느 코드를 어떤 방식으로 수정했는지
 - 테스트, 빌드 또는 실행 결과
 
@@ -88,6 +97,8 @@ docs: API 명세 갱신
 | `[버그]` | 기존 기능의 버그 제보 |
 
 본문에는 이슈 내용, 발생한 문제, 재현 방법과 관련 코드 또는 로그를 가능한 한 자세히 작성합니다. 비밀정보와 개인정보는 제거합니다.
+
+작업 시작 전에 열린 이슈를 검색합니다. 같은 기능이나 버그가 있으면 기존 이슈를 사용하고, 없을 때만 새 이슈를 생성합니다. 구현 요약과 검증 결과는 Pull Request에 기록하며, 의미 있는 결정이나 장애가 아닌 푸시별 진행 댓글은 남기지 않습니다.
 
 예시:
 
