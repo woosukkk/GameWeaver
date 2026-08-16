@@ -12,36 +12,13 @@ These instructions apply to the entire repository unless a closer `AGENTS.md` pr
 - Fix the root cause after checking relevant callers and neighboring code.
 - Keep generated output, secrets, and machine-specific files out of version control.
 
-## Project index
-
-<!-- Replace every TODO when starting a project. List only useful entry points. -->
-
-- Purpose: TODO
-- Main application: `TODO`
-- Tests: `TODO`
-- Configuration: `TODO`
-- Documentation: `TODO`
-
-## Commands
-
-<!-- Use exact commands that work from the repository root. Remove unused rows. -->
-
-- Install: `TODO`
-- Run: `TODO`
-- Test: `TODO`
-- Lint/format: `TODO`
-- Build: `TODO`
-
-Do not guess a missing command. Inspect the repository configuration first; if it remains unknown, report that verification could not be run.
-
 ## Command execution
 
-- Treat a change, build, or fix request as authorization for all safe, reversible, project-local subtasks and checks needed to complete it; do not request separate confirmation for each step.
-- Run read-only inspection and project-local setup, tests, linters, formatters, type checks, and builds without asking for confirmation.
-- Create ordinary project-local caches, temporary files, build output, and test artifacts required by those checks without asking.
-- Install dependencies already declared by the project when required to run its checks, provided this does not require system-wide changes.
-- Do not pause for confirmation merely because a safe check needs additional tool permissions; use the platform approval flow only when the environment technically requires it.
-- Ask before system-wide installation, accessing undeclared external services, using credentials, or operating outside the project workspace.
+- Treat a change, build, or fix request as authorization for every safe, reversible, in-scope subtask needed to complete it.
+- Execute read-only inspection, project-local edits and setup, declared dependency installation, tests, linters, formatters, type checks, builds, and ordinary temporary or generated artifacts without asking the user "Should I proceed?" or requesting confirmation in chat.
+- If the platform technically requires approval for an otherwise authorized action, submit the narrow platform approval directly. Group related operations and request a reusable, narrowly scoped command rule when supported instead of interrupting the user repeatedly.
+- Ask before system-wide installation, undeclared external-service access, credential use not already authorized for the task, destructive or irreversible actions, purchases, deployment, release, or material expansion of scope.
+- Read project-specific entry points and exact commands from `README.md`. If a value is still `TODO`, inspect project configuration rather than guessing; report only what remains unverifiable.
 
 ## Git workflow
 
@@ -55,7 +32,9 @@ Do not guess a missing command. Inspect the repository configuration first; if i
 - Choose the commit message without asking. Use `<type>: <subject>` with the appropriate type defined in `CONTRIBUTING.md` and an accurate summary of the completed task.
 - Add `Refs #<issue-number>` to the commit body and feature-to-`develop` pull request. Use `Closes #<issue-number>` only in a pull request targeting `main` so the issue closes with the stable release.
 - Put the implementation summary and validation results in the pull request. Do not duplicate GitHub's commit history with an issue comment for every push; comment only for a meaningful decision, blocker, or status change.
-- Do not push commits or branches to any remote unless the user explicitly requests it.
+- Do not push commits or branches to a remote until the user explicitly authorizes a push for the current task.
+- Push authorization is task-scoped. Once granted, it also authorizes the normal publishing steps for that task: push the relevant branch, create or update its pull request, link the tracked issue, set PR metadata, and inspect resulting checks without asking again.
+- Push authorization does not authorize merging a pull request, force-pushing, deploying, publishing a release, deleting remote data, or closing unrelated issues. Obtain explicit authorization for those actions.
 - Do not amend existing commits, force-push, rebase shared history, or otherwise rewrite history unless explicitly requested.
 
 ## Collaboration
@@ -95,11 +74,3 @@ Do not guess a missing command. Inspect the repository configuration first; if i
 - Never commit credentials, tokens, private keys, or populated `.env` files.
 - Do not delete data, deploy, or change external services unless explicitly requested.
 - Treat migrations, authentication, authorization, payments, and destructive operations as high-risk changes requiring targeted verification.
-
-## Further documentation
-
-<!-- Link detailed documents; do not duplicate them here. Remove this section if unused. -->
-
-- Architecture: `TODO`
-- Development guide: `TODO`
-- Deployment/operations: `TODO`
