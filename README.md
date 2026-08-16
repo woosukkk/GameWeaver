@@ -5,7 +5,7 @@
 ## Structure
 
 - `common/`: 모든 프로젝트에 적용할 기본 파일
-- `github/`: GitHub 이슈, PR, 자동화 템플릿
+- `.github/`: GitHub 이슈, PR, 자동화 템플릿
 - `skills/`: AI 에이전트용 재사용 스킬
 - `tools/`: 선호 오픈소스와 사용 조건
 - `templates/`: 기술 스택별 프로젝트 템플릿
