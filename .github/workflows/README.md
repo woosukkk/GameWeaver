@@ -12,3 +12,5 @@
 - Actions variable `NOTION_DATA_SOURCE_ID`: Notion 데이터 소스 ID
 
 Notion Integration에 대상 데이터베이스를 공유하지 않으면 API 요청이 실패합니다.
+
+설정 후 `main` 또는 `develop`에 커밋을 푸시하고, Actions 실행 성공과 Notion 항목 생성을 함께 확인합니다.
