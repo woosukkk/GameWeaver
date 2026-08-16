@@ -24,10 +24,11 @@ jobs:
       - name: Validate configuration
         shell: bash
         run: |
-          test -n "$NOTION_TOKEN" || { echo "Missing NOTION_TOKEN secret"; exit 1; }
-          test -n "$NOTION_DATA_SOURCE_ID" || { echo "Missing NOTION_DATA_SOURCE_ID variable"; exit 1; }
+          test -n "$NOTION_TOKEN" || echo "::warning::Missing NOTION_TOKEN secret; Notion sync will be skipped."
+          test -n "$NOTION_DATA_SOURCE_ID" || echo "::warning::Missing NOTION_DATA_SOURCE_ID variable; Notion sync will be skipped."
 
       - name: Record pushed commits
+        if: ${{ env.NOTION_TOKEN != '' && env.NOTION_DATA_SOURCE_ID != '' }}
         shell: bash
         env:
           BEFORE_SHA: ${{ github.event.before }}
