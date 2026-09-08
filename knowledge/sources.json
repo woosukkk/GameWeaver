@@ -1,0 +1,30 @@
+{
+  "reviewed_at": "2026-09-08",
+  "sources": [
+    {
+      "scope": "Unity engine systems",
+      "url": "https://docs.unity3d.com/6000.0/Documentation/Manual/index.html",
+      "use": "engine task taxonomy"
+    },
+    {
+      "scope": "Unreal gameplay systems",
+      "url": "https://dev.epicgames.com/documentation/unreal-engine/gameplay-systems-in-unreal-engine?lang=en-US",
+      "use": "gameplay framework and system dependencies"
+    },
+    {
+      "scope": "Godot project practices",
+      "url": "https://docs.godotengine.org/en/stable/tutorials/best_practices/index.html",
+      "use": "engine workflow and project organization"
+    },
+    {
+      "scope": "public development issues",
+      "url": "https://docs.github.com/en/rest/issues",
+      "use": "task labels, milestones, dependencies and timestamps"
+    },
+    {
+      "scope": "released game platform features",
+      "url": "https://partner.steamgames.com/doc/webapi_overview",
+      "use": "platform feature metadata where access permits"
+    }
+  ]
+}
