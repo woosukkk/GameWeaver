@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import copy
+import os
 from collections import defaultdict
 
+from .ai import AIError, PlanningAgent
 from .catalog import common, engine, genre
 
 
@@ -28,6 +30,7 @@ def _normalize(payload):
     project.setdefault("completed_features", [])
     project.setdefault("available_assets", [])
     project.setdefault("constraints", [])
+    project.setdefault("use_ai", False)
     weeks = project.get("duration_weeks")
     if not isinstance(weeks, int) or not 1 <= weeks <= 52:
         raise ValueError("'duration_weeks'는 1~52 사이의 정수여야 합니다.")
@@ -90,6 +93,24 @@ def _tasks(project):
     return result
 
 
+def _agent_tasks(items, project):
+    names = {item["name"].strip(): f"task_{index:02d}" for index, item in enumerate(items, 1)}
+    tasks = []
+    for item in items:
+        name = item["name"].strip()
+        skills = item.get("required_skills") or {project["engine"]: 2}
+        tasks.append({
+            "id": names[name],
+            "name": name,
+            "category": item["category"].strip(),
+            "required_skills": skills,
+            "estimated_hours": item["estimated_hours"],
+            "dependencies": [names[value] for value in item["dependencies"] if value in names and value != name],
+            "mandatory": item["mandatory"]
+        })
+    return tasks
+
+
 def _score(task, member, remaining, constraints):
     required = task["required_skills"]
     skill = sum(min(member["skills"].get(name, 0), level) / level for name, level in required.items()) / max(len(required), 1)
@@ -144,13 +165,47 @@ def _assign(tasks, members, weeks, constraints):
     return assignments, workload
 
 
-def _validate(tasks, assignments, workload, members):
+def _schedule(tasks, assignments, members):
+    task_by_id = {task["id"]: task for task in tasks}
+    member_by_id = {member["id"]: member for member in members}
+    assignee = {item["task_id"]: item["member_id"] for item in assignments}
+    result, member_end = {}, defaultdict(float)
+
+    def place(task_id, trail=None):
+        if task_id in result:
+            return result[task_id]
+        trail = (trail or set()) | {task_id}
+        task = task_by_id[task_id]
+        dependency_ends = [place(value, trail)["end_week"] for value in task["dependencies"] if value in task_by_id and value not in trail]
+        member_id = assignee.get(task_id)
+        if not member_id:
+            return {"start_week": 0, "end_week": 0}
+        start = max([member_end[member_id], *dependency_ends])
+        duration = task["estimated_hours"] / member_by_id[member_id]["available_hours_per_week"]
+        result[task_id] = {"task_id": task_id, "member_id": member_id, "start_week": round(start, 2), "end_week": round(start + duration, 2)}
+        member_end[member_id] = start + duration
+        return result[task_id]
+
+    for task in tasks:
+        place(task["id"])
+    return list(result.values())
+
+
+def _validate(tasks, assignments, workload, members, project=None, schedule=None):
     errors, task_ids = [], {task["id"] for task in tasks}
     member_ids = {member["id"] for member in members}
     assigned_ids = {item["task_id"] for item in assignments}
     names = [task["name"].strip().casefold() for task in tasks]
+    required_keys = {"id", "name", "category", "required_skills", "estimated_hours", "dependencies", "mandatory"}
+    if any(not isinstance(task, dict) or not required_keys <= task.keys() for task in tasks):
+        errors.append("태스크 결과 구조가 올바르지 않습니다.")
     if len(names) != len(set(names)):
         errors.append("중복된 태스크가 있습니다.")
+    if project:
+        completed = {name.casefold() for name in project["completed_features"]}
+        missing_features = [name for name in project.get("mandatory_features", []) if name.casefold() not in set(names) | completed]
+        if missing_features:
+            errors.append(f"필수 기능이 누락되었습니다: {', '.join(missing_features)}")
     for task in tasks:
         if task["mandatory"] and task["id"] not in assigned_ids:
             errors.append(f"필수 태스크 '{task['name']}'에 담당자가 없습니다.")
@@ -184,20 +239,57 @@ def _validate(tasks, assignments, workload, members):
     total_hours = sum(item["assigned_hours"] for item in workload)
     if total_hours and any(item["assigned_hours"] / total_hours > 0.7 for item in workload) and len(workload) > 1:
         errors.append("전체 작업의 70%를 초과하여 한 팀원에게 집중되었습니다.")
+    if project and schedule and any(item["end_week"] > project["duration_weeks"] for item in schedule):
+        errors.append("의존성과 담당자 작업 순서를 고려한 일정이 개발 기간을 초과합니다.")
     return {"valid": not errors, "errors": errors}
 
 
-def create_plan(payload, revision_request=""):
+def _validate_result(result):
+    required = {"project_analysis", "harness", "tasks", "assignments", "member_workload", "schedule", "validation", "ai"}
+    if required <= result.keys() and isinstance(result["tasks"], list) and isinstance(result["validation"].get("valid"), bool):
+        return
+    result["validation"]["valid"] = False
+    result["validation"]["errors"].append("최종 결과 구조가 올바르지 않습니다.")
+
+
+def create_plan(payload, revision_request="", agent=None):
     data = _normalize(payload)
     project, members = data["project"], data["members"]
-    tasks = _tasks(project)
-    assignments, workload = _assign(tasks, members, project["duration_weeks"], _constraints(revision_request, members, tasks))
-    return {"project_analysis": {"name": project["name"], "genre": project["genre"], "engine": project["engine"], "dimension": project["dimension"], "platform": project["platform"], "content_scale": project["content_scale"], "development_priority": project["goal"], "team_size": len(members), "summary": project.get("description", "")}, "harness": build_harness(project), "tasks": tasks, "assignments": assignments, "member_workload": workload, "validation": _validate(tasks, assignments, workload, members), "revision_request": revision_request}
+    harness = build_harness(project)
+    agent = agent or (PlanningAgent.from_env() if project["use_ai"] else None)
+    configured_model = getattr(agent, "model", None)
+    generated = None
+    ai_error = "OPENAI_API_KEY가 없어 규칙 기반 계획을 사용했습니다." if project["use_ai"] and not agent else None
+    retries = max(0, min(3, int(os.getenv("GAMEWEAVER_AI_RETRIES", "2"))))
+    for attempt in range(retries + 1 if agent else 1):
+        try:
+            if agent:
+                generated = agent.plan(project, members, harness, revision_request, [] if attempt == 0 else validation["errors"])
+                tasks = _agent_tasks(generated["tasks"], project)
+            else:
+                tasks = _tasks(project)
+            assignments, workload = _assign(tasks, members, project["duration_weeks"], _constraints(revision_request, members, tasks))
+            schedule = _schedule(tasks, assignments, members)
+            validation = _validate(tasks, assignments, workload, members, project, schedule)
+            if validation["valid"] or not agent:
+                break
+        except (AIError, KeyError, TypeError, ValueError) as exc:
+            ai_error = str(exc)
+            agent = None
+            tasks = _tasks(project)
+            assignments, workload = _assign(tasks, members, project["duration_weeks"], _constraints(revision_request, members, tasks))
+            schedule = _schedule(tasks, assignments, members)
+            validation = _validate(tasks, assignments, workload, members, project, schedule)
+            break
+    analysis_summary = generated.get("summary") if generated else project.get("description", "")
+    result = {"project_analysis": {"name": project["name"], "genre": project["genre"], "engine": project["engine"], "dimension": project["dimension"], "platform": project["platform"], "content_scale": project["content_scale"], "development_priority": project["goal"], "team_size": len(members), "summary": analysis_summary, "core_loop": generated.get("core_loop", []) if generated else []}, "harness": harness, "tasks": tasks, "assignments": assignments, "member_workload": workload, "schedule": schedule, "validation": validation, "revision_request": revision_request, "ai": {"requested": project["use_ai"], "used": bool(generated), "model": configured_model, "fallback_reason": ai_error}}
+    _validate_result(result)
+    return result
 
 
-def refine_plan(payload):
+def refine_plan(payload, agent=None):
     original = _require(payload, "input", dict)
     request = _require(payload, "request", str)
     if len(request) > 500:
         raise ValueError("수정 요청은 500자 이하여야 합니다.")
-    return create_plan(original, request)
+    return create_plan(original, request, agent)
