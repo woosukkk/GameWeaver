@@ -1,21 +1,72 @@
-import tempfile
 import unittest
-from pathlib import Path
+from datetime import datetime
+from unittest.mock import patch
 
-from gameweaver.repository import ProjectRepository
+from gameweaver.repository import ProjectRepository, mysql_config
+
+
+class FakeCursor:
+    lastrowid = 7
+
+    def __init__(self, connector):
+        self.connector = connector
+
+    def execute(self, query, params=None):
+        self.connector.queries.append((query, params))
+
+    def fetchone(self):
+        return self.connector.detail
+
+    def fetchall(self):
+        return [{"id": 7, "project_name": "테스트", "revision_request": "균등하게", "created_at": datetime(2026, 1, 1)}]
+
+    def close(self):
+        pass
+
+
+class FakeConnection:
+    def __init__(self, connector):
+        self.connector = connector
+
+    def cursor(self, dictionary=False):
+        return FakeCursor(self.connector)
+
+    def commit(self):
+        self.connector.commits += 1
+
+    def rollback(self):
+        self.connector.rollbacks += 1
+
+    def close(self):
+        pass
+
+
+class FakeConnector:
+    def __init__(self):
+        self.queries, self.commits, self.rollbacks = [], 0, 0
+        self.detail = {"id": 7, "project_name": "테스트", "input_json": '{"project":{"name":"테스트"}}', "result_json": '{"tasks":[]}', "revision_request": "", "created_at": datetime(2026, 1, 1)}
+
+    def connect(self, **config):
+        self.config = config
+        return FakeConnection(self)
 
 
 class RepositoryTests(unittest.TestCase):
-    def test_plan_round_trip(self):
-        with tempfile.TemporaryDirectory() as directory:
-            repository = ProjectRepository(Path(directory) / "plans.db")
-            input_data = {"project": {"name": "테스트"}, "members": []}
-            result = {"tasks": [], "revision_request": "균등하게"}
-            plan_id = repository.save(input_data, result)
-            saved = repository.get(plan_id)
-            self.assertEqual(input_data, saved["input"])
-            self.assertEqual(result, saved["result"])
-            self.assertEqual("테스트", repository.list()[0]["project_name"])
+    def test_plan_round_trip_queries(self):
+        connector = FakeConnector()
+        repository = ProjectRepository({"database": "gameweaver"}, connector)
+        plan_id = repository.save({"project": {"name": "테스트"}}, {"tasks": [], "revision_request": "균등하게"})
+        saved = repository.get(plan_id)
+        listed = repository.list()
+        self.assertEqual(7, plan_id)
+        self.assertEqual("테스트", saved["input"]["project"]["name"])
+        self.assertEqual("2026-01-01T00:00:00", listed[0]["created_at"])
+        self.assertTrue(any("INSERT INTO plans" in query for query, _ in connector.queries))
+        self.assertEqual(4, connector.commits)
+
+    def test_mysql_config_requires_credentials(self):
+        with patch.dict("os.environ", {}, clear=True), self.assertRaisesRegex(RuntimeError, "MYSQL_USER"):
+            mysql_config()
 
 
 if __name__ == "__main__":
