@@ -253,7 +253,7 @@ def _validate_result(result):
     result["validation"]["errors"].append("최종 결과 구조가 올바르지 않습니다.")
 
 
-def create_plan(payload, revision_request="", agent=None):
+def create_plan(payload, revision_request="", agent=None, effort_factors=None):
     data = _normalize(payload)
     project, members = data["project"], data["members"]
     harness = build_harness(project)
@@ -269,6 +269,9 @@ def create_plan(payload, revision_request="", agent=None):
                 tasks = _agent_tasks(generated["tasks"], project)
             else:
                 tasks = _tasks(project)
+            for task in tasks:
+                factor = (effort_factors or {}).get(task["name"], 1)
+                task["estimated_hours"] = round(task["estimated_hours"] * factor, 1)
             assignments, workload = _assign(tasks, members, project["duration_weeks"], _constraints(revision_request, members, tasks))
             schedule = _schedule(tasks, assignments, members)
             validation = _validate(tasks, assignments, workload, members, project, schedule)
@@ -278,6 +281,9 @@ def create_plan(payload, revision_request="", agent=None):
             ai_error = str(exc)
             agent = None
             tasks = _tasks(project)
+            for task in tasks:
+                factor = (effort_factors or {}).get(task["name"], 1)
+                task["estimated_hours"] = round(task["estimated_hours"] * factor, 1)
             assignments, workload = _assign(tasks, members, project["duration_weeks"], _constraints(revision_request, members, tasks))
             schedule = _schedule(tasks, assignments, members)
             validation = _validate(tasks, assignments, workload, members, project, schedule)
@@ -288,9 +294,9 @@ def create_plan(payload, revision_request="", agent=None):
     return result
 
 
-def refine_plan(payload, agent=None):
+def refine_plan(payload, agent=None, effort_factors=None):
     original = _require(payload, "input", dict)
     request = _require(payload, "request", str)
     if len(request) > 500:
         raise ValueError("수정 요청은 500자 이하여야 합니다.")
-    return create_plan(original, request, agent)
+    return create_plan(original, request, agent, effort_factors)

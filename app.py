@@ -15,6 +15,11 @@ load_env(ROOT / ".env")
 REPOSITORY = ProjectRepository()
 
 
+def effort_factors(payload):
+    project = payload["project"]
+    return {item["task_name"]: item["effort_factor"] for item in REPOSITORY.calibrations() if item["genre"] == project["genre"] and item["engine"] == project["engine"]}
+
+
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(ROOT / "web"), **kwargs)
@@ -61,11 +66,11 @@ class Handler(SimpleHTTPRequestHandler):
                 return self._json(413, {"error": "요청이 너무 큽니다."})
             payload = json.loads(self.rfile.read(length))
             if self.path == "/api/plan":
-                result = create_plan(payload)
+                result = create_plan(payload, effort_factors=effort_factors(payload))
                 result.update(REPOSITORY.save(payload, result))
                 return self._json(200, result)
             if self.path == "/api/refine":
-                result = refine_plan(payload)
+                result = refine_plan(payload, effort_factors=effort_factors(payload["input"]))
                 result.update(REPOSITORY.save(payload["input"], result, payload.get("parent_plan_id")))
                 return self._json(200, result)
             if self.path.startswith("/api/plans/") and self.path.endswith("/confirm"):

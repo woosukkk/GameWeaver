@@ -44,6 +44,13 @@ class PlannerTests(unittest.TestCase):
         create_plan(payload)
         self.assertNotIn("platform", payload["project"])
 
+    def test_measured_effort_factor_updates_future_estimate(self):
+        normal = create_plan(SAMPLE)
+        adjusted = create_plan(SAMPLE, effort_factors={"Enemy AI": 1.5})
+        normal_hours = next(task["estimated_hours"] for task in normal["tasks"] if task["name"] == "Enemy AI")
+        adjusted_hours = next(task["estimated_hours"] for task in adjusted["tasks"] if task["name"] == "Enemy AI")
+        self.assertEqual(normal_hours * 1.5, adjusted_hours)
+
     def test_dependency_cycle_is_rejected(self):
         tasks = [
             {"id": "a", "name": "A", "mandatory": True, "dependencies": ["b"]},
