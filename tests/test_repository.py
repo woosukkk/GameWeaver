@@ -24,6 +24,12 @@ class FakeCursor:
         return self.connector.detail
 
     def fetchall(self):
+        if "FROM task_outcomes" in self.query:
+            return [
+                {"genre": "Roguelike", "engine": "Unity", "task_name": "Combat", "estimated_hours": 10, "actual_hours": 15},
+                {"genre": "Roguelike", "engine": "Unity", "task_name": "Combat", "estimated_hours": 10, "actual_hours": 20},
+                {"genre": "Roguelike", "engine": "Unity", "task_name": "Combat", "estimated_hours": 10, "actual_hours": 10},
+            ]
         return [{"id": 7, "project_name": "테스트", "revision_request": "균등하게", "created_at": datetime(2026, 1, 1)}]
 
     def close(self):
@@ -77,6 +83,17 @@ class RepositoryTests(unittest.TestCase):
         self.assertTrue(repository.confirm(7))
         self.assertEqual(1, repository.delete_project("project-1"))
         self.assertEqual("테스트", repository.versions("project-1")[0]["project_name"])
+
+    def test_outcomes_produce_median_calibration(self):
+        connector = FakeConnector()
+        connector.detail["input_json"] = '{"project":{"name":"테스트","genre":"Roguelike","engine":"Unity"}}'
+        connector.detail["result_json"] = '{"tasks":[{"id":"task_01","name":"Combat","estimated_hours":10}]}'
+        repository = ProjectRepository({"database": "gameweaver"}, connector)
+        saved = repository.save_outcomes(7, [{"task_id": "task_01", "actual_hours": 15, "rework_hours": 2, "playtest_issues": 1}])
+        calibration = repository.calibrations()[0]
+        self.assertEqual(1, saved)
+        self.assertEqual(1.5, calibration["effort_factor"])
+        self.assertEqual(3, calibration["sample_count"])
 
     def test_mysql_config_requires_credentials(self):
         with patch.dict("os.environ", {}, clear=True), self.assertRaisesRegex(RuntimeError, "MYSQL_USER"):

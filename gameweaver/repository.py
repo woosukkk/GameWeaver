@@ -2,7 +2,9 @@
 
 import json
 import os
+from collections import defaultdict
 from contextlib import contextmanager
+from statistics import median
 from uuid import uuid4
 
 
@@ -39,6 +41,24 @@ class ProjectRepository:
                 cursor.execute("SELECT COUNT(*) AS count FROM information_schema.columns WHERE table_schema=%s AND table_name='plans' AND column_name=%s", (self.config["database"], name))
                 if cursor.fetchone()["count"] == 0:
                     cursor.execute(statement)
+            cursor.execute("""CREATE TABLE IF NOT EXISTS task_outcomes (
+                id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                plan_id BIGINT UNSIGNED NOT NULL,
+                task_id VARCHAR(50) NOT NULL,
+                task_name VARCHAR(255) NOT NULL,
+                genre VARCHAR(100) NOT NULL,
+                engine VARCHAR(100) NOT NULL,
+                estimated_hours DECIMAL(8,2) NOT NULL,
+                actual_hours DECIMAL(8,2) NOT NULL,
+                completed BOOLEAN NOT NULL DEFAULT TRUE,
+                rework_hours DECIMAL(8,2) NOT NULL DEFAULT 0,
+                blockers JSON NOT NULL,
+                playtest_issues INT UNSIGNED NOT NULL DEFAULT 0,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                UNIQUE KEY uq_task_outcome (plan_id, task_id),
+                INDEX idx_outcome_context (genre, engine, task_name)
+            ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci""")
 
     def save(self, input_data, result, parent_plan_id=None):
         project_key = input_data["project"].get("id") or str(uuid4())
@@ -77,8 +97,43 @@ class ProjectRepository:
 
     def delete_project(self, project_key):
         with self._db() as (_, cursor):
+            cursor.execute("DELETE o FROM task_outcomes o JOIN plans p ON p.id=o.plan_id WHERE p.project_key=%s", (project_key,))
             cursor.execute("DELETE FROM plans WHERE project_key=%s", (project_key,))
             return cursor.rowcount
+
+    def save_outcomes(self, plan_id, outcomes):
+        plan = self.get(plan_id)
+        if not plan:
+            raise ValueError("계획을 찾을 수 없습니다.")
+        tasks = {task["id"]: task for task in plan["result"]["tasks"]}
+        project = plan["input"]["project"]
+        with self._db() as (_, cursor):
+            for outcome in outcomes:
+                task = tasks.get(outcome.get("task_id"))
+                if not task:
+                    raise ValueError("계획에 없는 작업 결과가 포함되어 있습니다.")
+                actual = outcome.get("actual_hours")
+                rework = outcome.get("rework_hours", 0)
+                issues = outcome.get("playtest_issues", 0)
+                if not isinstance(actual, (int, float)) or actual < 0 or not isinstance(rework, (int, float)) or rework < 0 or not isinstance(issues, int) or issues < 0:
+                    raise ValueError("실제 시간, 재작업 시간, 플레이테스트 이슈는 0 이상이어야 합니다.")
+                cursor.execute("""INSERT INTO task_outcomes
+                    (plan_id,task_id,task_name,genre,engine,estimated_hours,actual_hours,completed,rework_hours,blockers,playtest_issues)
+                    VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    ON DUPLICATE KEY UPDATE actual_hours=VALUES(actual_hours),completed=VALUES(completed),rework_hours=VALUES(rework_hours),blockers=VALUES(blockers),playtest_issues=VALUES(playtest_issues)""",
+                    (plan_id, task["id"], task["name"], project["genre"], project["engine"], task["estimated_hours"], actual, bool(outcome.get("completed", True)), rework, _dump(outcome.get("blockers", [])), issues))
+        return len(outcomes)
+
+    def calibrations(self, min_samples=3):
+        with self._db(dictionary=True) as (_, cursor):
+            cursor.execute("""SELECT o.genre,o.engine,o.task_name,o.estimated_hours,o.actual_hours
+                FROM task_outcomes o JOIN plans p ON p.id=o.plan_id
+                WHERE o.completed=TRUE AND o.actual_hours>0 AND o.estimated_hours>0 AND p.status='confirmed'""")
+            rows = cursor.fetchall()
+        groups = defaultdict(list)
+        for row in rows:
+            groups[(row["genre"], row["engine"], row["task_name"])].append(float(row["actual_hours"]) / float(row["estimated_hours"]))
+        return [{"genre": key[0], "engine": key[1], "task_name": key[2], "sample_count": len(values), "effort_factor": round(median(values), 2)} for key, values in groups.items() if len(values) >= min_samples]
 
     @contextmanager
     def _db(self, dictionary=False):

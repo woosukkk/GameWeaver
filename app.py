@@ -33,6 +33,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self._json(200, {"status": "ok", "ai_configured": bool(os.getenv("OPENAI_API_KEY"))})
         if path == "/api/projects":
             return self._json(200, {"projects": REPOSITORY.list()})
+        if path == "/api/calibrations":
+            return self._json(200, {"calibrations": REPOSITORY.calibrations()})
         if path.startswith("/api/plans/"):
             try:
                 plan = REPOSITORY.get(int(path.rsplit("/", 1)[1]))
@@ -72,6 +74,15 @@ class Handler(SimpleHTTPRequestHandler):
                 except ValueError:
                     return self._json(400, {"error": "계획 ID가 올바르지 않습니다."})
                 return self._json(200, {"confirmed": True}) if REPOSITORY.confirm(plan_id) else self._json(404, {"error": "계획을 찾을 수 없습니다."})
+            if self.path.startswith("/api/plans/") and self.path.endswith("/outcomes"):
+                try:
+                    plan_id = int(self.path.split("/")[3])
+                except ValueError:
+                    return self._json(400, {"error": "계획 ID가 올바르지 않습니다."})
+                outcomes = payload.get("outcomes")
+                if not isinstance(outcomes, list) or not outcomes:
+                    return self._json(400, {"error": "작업 결과가 필요합니다."})
+                return self._json(200, {"saved": REPOSITORY.save_outcomes(plan_id, outcomes)})
             return self._json(404, {"error": "API를 찾을 수 없습니다."})
         except (ValueError, TypeError, json.JSONDecodeError) as exc:
             return self._json(400, {"error": str(exc)})
