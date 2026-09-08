@@ -6,7 +6,7 @@ Web form → HTTP API → Project Analyzer → Harness Builder
                                               ↓                 ↑ retry
                                         Planning Engine → Tools → Validator
                                               ↓
-                                      Structured Result → SQLite
+                                      Structured Result → MySQL
 ```
 
 - Web UI는 구조화 입력과 결과 표시만 담당합니다.
@@ -17,6 +17,6 @@ Web form → HTTP API → Project Analyzer → Harness Builder
 - Planning Agent는 strict JSON Schema로 핵심 루프와 태스크를 생성하며 Validator 오류를 받아 최대 2회 수정합니다.
 - AI 키가 없거나 호출이 실패하면 같은 Harness의 규칙 기반 태스크로 안전하게 전환합니다.
 - 수정 요청은 기존 입력을 유지한 채 Agent 또는 규칙 엔진의 추가 제약조건으로 해석하여 재계산합니다.
-- SQLite는 프로젝트 입력, 결과, 수정 요청과 생성 시각을 보존합니다.
+- MySQL은 프로젝트 입력, 결과, 수정 요청과 생성 시각을 보존합니다. 앱 시작 시 필요한 `plans` 테이블을 자동 생성합니다.
 
 LLM은 의미 이해와 태스크 제안만 담당하고, 점수 계산·배정·일정·검증은 재현 가능한 코드 계층에 유지합니다.

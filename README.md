@@ -244,11 +244,12 @@ Match Score = Skill + Experience + Preference + Availability + Learning Interest
 
 ## 실행
 
-Python 3.11 이상만 필요합니다.
+Python 3.11 이상과 MySQL 서버가 필요합니다. MySQL에 `gameweaver` 데이터베이스와 접근 계정을 먼저 만들고 환경변수에 입력합니다. `plans` 테이블은 앱 시작 시 자동 생성됩니다.
 
 ```powershell
+python -m pip install -r requirements.txt
 Copy-Item .env.example .env
-# .env의 OPENAI_API_KEY 값을 입력
+# .env의 OPENAI_API_KEY와 MYSQL_* 값을 입력
 python app.py
 ```
 
@@ -259,7 +260,8 @@ python app.py
 - 실행: `python app.py`
 - 테스트: `python -m unittest discover -s tests -v`
 - 문법 검사: `python -m compileall app.py gameweaver tests`
-- 외부 의존성: 없음
+- 설치: `python -m pip install -r requirements.txt`
+- 데이터베이스: MySQL 8.x 및 Connector/Python 9.7.0
 
 AI 계획을 사용하려면 `.env`에 `OPENAI_API_KEY`를 설정합니다. 모델은 기본적으로 `gpt-5.6-terra`이며 `OPENAI_MODEL`로 바꿀 수 있습니다. 키가 없거나 API 호출이 실패하면 규칙 기반 계획으로 자동 전환합니다. 구현은 OpenAI [Responses API](https://developers.openai.com/api/reference/cli/resources/responses/methods/create)와 strict JSON Schema Structured Outputs를 사용하며 API 응답 저장은 끕니다.
 
@@ -279,13 +281,13 @@ AI 계획을 사용하려면 `.env`에 `OPENAI_API_KEY`를 설정합니다. 모�
 
 ## 현재 구현 상태
 
-현재 버전은 외부 의존성 없이 Single Planning Agent와 규칙 기반 fallback을 모두 실행할 수 있는 MVP다.
+현재 버전은 Single Planning Agent와 규칙 기반 fallback을 모두 실행할 수 있는 MVP다.
 
 - 완료: 확장된 프로젝트·팀원 Form, 외부 지식 기반 Harness, AI 태스크·핵심 루프 생성, 스킬 매칭, 배정, 작업량·일정 계산, 수정 요청, 결과 UI
 - Planning Agent: OpenAI Responses API의 strict Structured Outputs 사용, Validator 오류를 전달해 최대 2회 자동 Retry
 - 전용 데이터 보유: Roguelike, Visual Novel, RPG, Puzzle, Platformer, Simulation, Action
 - 엔진 데이터 보유: Unity, Unreal Engine, Godot
-- 저장: 프로젝트 입력, 생성 결과와 수정 이력을 로컬 SQLite에 저장하고 최근 계획 조회
+- 저장: 프로젝트 입력, 생성 결과와 수정 이력을 MySQL에 저장하고 최근 계획 조회
 - 검증 완료: 결과 구조, 필수·중복·미배정 태스크, 존재하지 않는 팀원, 작업량 초과, dependency 누락·순환, 일정 초과, 70% 초과 업무 편중
 - 후속 개선: 실제 프로젝트 데이터에 따른 작업 시간·매칭 가중치 보정, 인증과 사용자별 저장소, 운영 환경 배포
 
