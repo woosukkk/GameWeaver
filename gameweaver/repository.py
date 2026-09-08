@@ -59,6 +59,25 @@ class ProjectRepository:
                 UNIQUE KEY uq_task_outcome (plan_id, task_id),
                 INDEX idx_outcome_context (genre, engine, task_name)
             ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci""")
+            cursor.execute("""CREATE TABLE IF NOT EXISTS project_retrospectives (
+                id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                plan_id BIGINT UNSIGNED NOT NULL,
+                project_key CHAR(36) NOT NULL,
+                project_name VARCHAR(255) NOT NULL,
+                genre VARCHAR(100) NOT NULL,
+                engine VARCHAR(100) NOT NULL,
+                satisfaction TINYINT UNSIGNED NOT NULL,
+                core_loop_achieved BOOLEAN NOT NULL,
+                summary TEXT NOT NULL,
+                went_well TEXT NOT NULL,
+                problems TEXT NOT NULL,
+                recommendations TEXT NOT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                UNIQUE KEY uq_project_retrospective_plan (plan_id),
+                INDEX idx_retrospective_context (genre, engine),
+                FULLTEXT KEY ft_retrospective_text (summary, went_well, problems, recommendations)
+            ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci""")
 
     def save(self, input_data, result, parent_plan_id=None):
         project_key = input_data["project"].get("id") or str(uuid4())
@@ -98,6 +117,7 @@ class ProjectRepository:
     def delete_project(self, project_key):
         with self._db() as (_, cursor):
             cursor.execute("DELETE o FROM task_outcomes o JOIN plans p ON p.id=o.plan_id WHERE p.project_key=%s", (project_key,))
+            cursor.execute("DELETE FROM project_retrospectives WHERE project_key=%s", (project_key,))
             cursor.execute("DELETE FROM plans WHERE project_key=%s", (project_key,))
             return cursor.rowcount
 
@@ -134,6 +154,37 @@ class ProjectRepository:
         for row in rows:
             groups[(row["genre"], row["engine"], row["task_name"])].append(float(row["actual_hours"]) / float(row["estimated_hours"]))
         return [{"genre": key[0], "engine": key[1], "task_name": key[2], "sample_count": len(values), "effort_factor": round(median(values), 2)} for key, values in groups.items() if len(values) >= min_samples]
+
+    def save_retrospective(self, plan_id, data):
+        plan = self.get(plan_id)
+        if not plan or plan["status"] not in ("confirmed", "completed"):
+            raise ValueError("확정된 계획만 완료할 수 있습니다.")
+        satisfaction = data.get("satisfaction")
+        if not isinstance(satisfaction, int) or not 1 <= satisfaction <= 5:
+            raise ValueError("만족도는 1~5 사이의 정수여야 합니다.")
+        project = plan["input"]["project"]
+        values = [str(data.get(name, "")).strip() for name in ("summary", "went_well", "problems", "recommendations")]
+        if not values[0]:
+            raise ValueError("회고 요약이 필요합니다.")
+        with self._db() as (_, cursor):
+            cursor.execute("""INSERT INTO project_retrospectives
+                (plan_id,project_key,project_name,genre,engine,satisfaction,core_loop_achieved,summary,went_well,problems,recommendations)
+                VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                ON DUPLICATE KEY UPDATE satisfaction=VALUES(satisfaction),core_loop_achieved=VALUES(core_loop_achieved),summary=VALUES(summary),went_well=VALUES(went_well),problems=VALUES(problems),recommendations=VALUES(recommendations)""",
+                (plan_id, plan["project_key"], plan["project_name"], project["genre"], project["engine"], satisfaction, bool(data.get("core_loop_achieved")), *values))
+            cursor.execute("UPDATE plans SET status='completed' WHERE id=%s", (plan_id,))
+
+    def similar_cases(self, project, limit=3):
+        terms = " ".join([project.get("name", ""), project.get("genre", ""), project.get("engine", ""), *project.get("mandatory_features", [])]).strip()
+        with self._db(dictionary=True) as (_, cursor):
+            cursor.execute("""SELECT plan_id,project_name,genre,engine,satisfaction,core_loop_achieved,summary,went_well,problems,recommendations,
+                MATCH(summary,went_well,problems,recommendations) AGAINST (%s IN NATURAL LANGUAGE MODE) AS text_score
+                FROM project_retrospectives
+                WHERE genre=%s OR engine=%s OR MATCH(summary,went_well,problems,recommendations) AGAINST (%s IN NATURAL LANGUAGE MODE)
+                ORDER BY (genre=%s)+(engine=%s) DESC,text_score DESC,updated_at DESC LIMIT %s""",
+                (terms, project.get("genre"), project.get("engine"), terms, project.get("genre"), project.get("engine"), limit))
+            rows = cursor.fetchall()
+        return [_serialize_dates(row) for row in rows]
 
     @contextmanager
     def _db(self, dictionary=False):

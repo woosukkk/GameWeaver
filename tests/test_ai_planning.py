@@ -10,8 +10,10 @@ class FakeAgent:
 
     def __init__(self):
         self.calls = []
+        self.similar_cases = None
 
-    def plan(self, project, members, harness, revision_request="", validation_errors=None):
+    def plan(self, project, members, harness, revision_request="", validation_errors=None, similar_cases=None):
+        self.similar_cases = similar_cases
         self.calls.append(validation_errors)
         if len(self.calls) == 1:
             return {"summary": "첫 시도", "core_loop": ["전투"], "tasks": [{"name": "Prototype", "category": "Gameplay", "required_skills": {"Unity": 3}, "estimated_hours": 8, "dependencies": [], "mandatory": True}]}
@@ -38,6 +40,13 @@ class AIPlanningTests(unittest.TestCase):
             result = create_plan(payload)
         self.assertFalse(result["ai"]["used"])
         self.assertIn("OPENAI_API_KEY", result["ai"]["fallback_reason"])
+
+    def test_similar_cases_are_passed_to_agent_and_exposed_as_references(self):
+        agent = FakeAgent()
+        case = {"plan_id": 3, "project_name": "과거 게임", "summary": "범위를 줄여 완성"}
+        result = create_plan({**SAMPLE, "project": {**SAMPLE["project"], "use_ai": True}}, agent=agent, similar_cases=[case])
+        self.assertEqual("과거 게임", agent.similar_cases[0]["project_name"])
+        self.assertEqual(3, result["case_references"][0]["plan_id"])
 
 
 if __name__ == "__main__":

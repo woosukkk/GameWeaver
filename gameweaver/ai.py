@@ -59,18 +59,20 @@ class PlanningAgent:
         key = os.getenv("OPENAI_API_KEY", "").strip()
         return cls(key) if key else None
 
-    def plan(self, project, members, harness, revision_request="", validation_errors=None):
+    def plan(self, project, members, harness, revision_request="", validation_errors=None, similar_cases=None):
         context = {
             "project": project,
             "team": members,
             "harness": harness,
             "revision_request": revision_request,
-            "previous_validation_errors": validation_errors or []
+            "previous_validation_errors": validation_errors or [],
+            "similar_completed_projects": similar_cases or []
         }
         instructions = (
             "You are the single GameWeaver planning agent. Create an executable game-development task plan in Korean. "
             "Obey the supplied harness, preserve every mandatory feature, exclude completed or explicitly excluded work, "
-            "use task names in dependencies, keep total effort within team capacity, and avoid speculative production scope."
+            "use task names in dependencies, keep total effort within team capacity, and avoid speculative production scope. "
+            "Use completed-project cases only as evidence; do not copy their scope blindly."
         )
         body = {
             "model": self.model,

@@ -253,7 +253,7 @@ def _validate_result(result):
     result["validation"]["errors"].append("최종 결과 구조가 올바르지 않습니다.")
 
 
-def create_plan(payload, revision_request="", agent=None, effort_factors=None):
+def create_plan(payload, revision_request="", agent=None, effort_factors=None, similar_cases=None):
     data = _normalize(payload)
     project, members = data["project"], data["members"]
     harness = build_harness(project)
@@ -265,7 +265,7 @@ def create_plan(payload, revision_request="", agent=None, effort_factors=None):
     for attempt in range(retries + 1 if agent else 1):
         try:
             if agent:
-                generated = agent.plan(project, members, harness, revision_request, [] if attempt == 0 else validation["errors"])
+                generated = agent.plan(project, members, harness, revision_request, [] if attempt == 0 else validation["errors"], similar_cases)
                 tasks = _agent_tasks(generated["tasks"], project)
             else:
                 tasks = _tasks(project)
@@ -289,14 +289,14 @@ def create_plan(payload, revision_request="", agent=None, effort_factors=None):
             validation = _validate(tasks, assignments, workload, members, project, schedule)
             break
     analysis_summary = generated.get("summary") if generated else project.get("description", "")
-    result = {"project_analysis": {"name": project["name"], "genre": project["genre"], "engine": project["engine"], "dimension": project["dimension"], "platform": project["platform"], "content_scale": project["content_scale"], "development_priority": project["goal"], "team_size": len(members), "summary": analysis_summary, "core_loop": generated.get("core_loop", []) if generated else []}, "harness": harness, "tasks": tasks, "assignments": assignments, "member_workload": workload, "schedule": schedule, "validation": validation, "revision_request": revision_request, "ai": {"requested": project["use_ai"], "used": bool(generated), "model": configured_model, "fallback_reason": ai_error}}
+    result = {"project_analysis": {"name": project["name"], "genre": project["genre"], "engine": project["engine"], "dimension": project["dimension"], "platform": project["platform"], "content_scale": project["content_scale"], "development_priority": project["goal"], "team_size": len(members), "summary": analysis_summary, "core_loop": generated.get("core_loop", []) if generated else []}, "harness": harness, "tasks": tasks, "assignments": assignments, "member_workload": workload, "schedule": schedule, "validation": validation, "revision_request": revision_request, "case_references": [{"plan_id": case["plan_id"], "project_name": case["project_name"], "summary": case["summary"]} for case in (similar_cases or [])], "ai": {"requested": project["use_ai"], "used": bool(generated), "model": configured_model, "fallback_reason": ai_error}}
     _validate_result(result)
     return result
 
 
-def refine_plan(payload, agent=None, effort_factors=None):
+def refine_plan(payload, agent=None, effort_factors=None, similar_cases=None):
     original = _require(payload, "input", dict)
     request = _require(payload, "request", str)
     if len(request) > 500:
         raise ValueError("수정 요청은 500자 이하여야 합니다.")
-    return create_plan(original, request, agent, effort_factors)
+    return create_plan(original, request, agent, effort_factors, similar_cases)

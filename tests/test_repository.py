@@ -24,6 +24,8 @@ class FakeCursor:
         return self.connector.detail
 
     def fetchall(self):
+        if "FROM project_retrospectives" in self.query:
+            return [{"plan_id": 7, "project_name": "이전 게임", "genre": "Roguelike", "engine": "Unity", "satisfaction": 4, "core_loop_achieved": 1, "summary": "전투 범위를 줄여 완성", "went_well": "", "problems": "", "recommendations": "", "text_score": 1.0}]
         if "FROM task_outcomes" in self.query:
             return [
                 {"genre": "Roguelike", "engine": "Unity", "task_name": "Combat", "estimated_hours": 10, "actual_hours": 15},
@@ -94,6 +96,16 @@ class RepositoryTests(unittest.TestCase):
         self.assertEqual(1, saved)
         self.assertEqual(1.5, calibration["effort_factor"])
         self.assertEqual(3, calibration["sample_count"])
+
+    def test_completed_retrospective_is_searchable(self):
+        connector = FakeConnector()
+        connector.detail["status"] = "confirmed"
+        connector.detail["input_json"] = '{"project":{"name":"테스트","genre":"Roguelike","engine":"Unity"}}'
+        repository = ProjectRepository({"database": "gameweaver"}, connector)
+        repository.save_retrospective(7, {"satisfaction": 4, "core_loop_achieved": True, "summary": "핵심 전투 완성"})
+        cases = repository.similar_cases({"name": "새 게임", "genre": "Roguelike", "engine": "Unity", "mandatory_features": ["Combat"]})
+        self.assertEqual("이전 게임", cases[0]["project_name"])
+        self.assertTrue(any("FULLTEXT KEY" in query for query, _ in connector.queries))
 
     def test_mysql_config_requires_credentials(self):
         with patch.dict("os.environ", {}, clear=True), self.assertRaisesRegex(RuntimeError, "MYSQL_USER"):

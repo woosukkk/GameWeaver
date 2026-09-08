@@ -66,11 +66,11 @@ class Handler(SimpleHTTPRequestHandler):
                 return self._json(413, {"error": "요청이 너무 큽니다."})
             payload = json.loads(self.rfile.read(length))
             if self.path == "/api/plan":
-                result = create_plan(payload, effort_factors=effort_factors(payload))
+                result = create_plan(payload, effort_factors=effort_factors(payload), similar_cases=REPOSITORY.similar_cases(payload["project"]))
                 result.update(REPOSITORY.save(payload, result))
                 return self._json(200, result)
             if self.path == "/api/refine":
-                result = refine_plan(payload, effort_factors=effort_factors(payload["input"]))
+                result = refine_plan(payload, effort_factors=effort_factors(payload["input"]), similar_cases=REPOSITORY.similar_cases(payload["input"]["project"]))
                 result.update(REPOSITORY.save(payload["input"], result, payload.get("parent_plan_id")))
                 return self._json(200, result)
             if self.path.startswith("/api/plans/") and self.path.endswith("/confirm"):
@@ -88,6 +88,13 @@ class Handler(SimpleHTTPRequestHandler):
                 if not isinstance(outcomes, list) or not outcomes:
                     return self._json(400, {"error": "작업 결과가 필요합니다."})
                 return self._json(200, {"saved": REPOSITORY.save_outcomes(plan_id, outcomes)})
+            if self.path.startswith("/api/plans/") and self.path.endswith("/retrospective"):
+                try:
+                    plan_id = int(self.path.split("/")[3])
+                except ValueError:
+                    return self._json(400, {"error": "계획 ID가 올바르지 않습니다."})
+                REPOSITORY.save_retrospective(plan_id, payload)
+                return self._json(200, {"completed": True})
             return self._json(404, {"error": "API를 찾을 수 없습니다."})
         except (ValueError, TypeError, json.JSONDecodeError) as exc:
             return self._json(400, {"error": str(exc)})
