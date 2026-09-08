@@ -1,0 +1,7 @@
+{
+  "project": {"name": "Dungeon Loop", "genre": "Roguelike", "engine": "Unity", "dimension": "2D", "platform": "PC", "duration_weeks": 4, "goal": "MVP", "content_scale": "소규모", "reference_games": ["Hades"], "mandatory_features": ["Boss Battle"], "excluded_features": ["Online Multiplayer"], "completed_features": [], "available_assets": ["2D character sprites"], "constraints": ["무료 에셋만 사용"], "description": "짧은 전투 중심 로그라이크"},
+  "members": [
+    {"id": "member_01", "name": "민수", "skills": {"Unity": 4, "Programming": 4, "AI": 2}, "preferred_roles": ["Gameplay Programmer"], "avoid_roles": ["UI"], "available_hours_per_week": 12, "learning_interests": ["Enemy AI"], "experience": "Unity 2D 프로젝트 1회", "related_projects": ["게임잼 액션 게임"]},
+    {"id": "member_02", "name": "지수", "skills": {"Unity": 3, "UI": 5, "Game Design": 4}, "preferred_roles": ["UI Designer"], "avoid_roles": [], "available_hours_per_week": 10, "learning_interests": ["Progression"], "experience": "UI 프로토타입 제작", "related_projects": []}
+  ]
+}
