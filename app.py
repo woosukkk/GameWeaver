@@ -12,7 +12,7 @@ from gameweaver.repository import ProjectRepository
 
 ROOT = Path(__file__).parent
 load_env(ROOT / ".env")
-REPOSITORY = ProjectRepository(ROOT / os.getenv("GAMEWEAVER_DB", "data/gameweaver.db"))
+REPOSITORY = ProjectRepository()
 
 
 class Handler(SimpleHTTPRequestHandler):
