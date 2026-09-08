@@ -28,7 +28,9 @@ These instructions apply to the entire repository unless a closer `AGENTS.md` pr
 - Include the issue number in the branch name, such as `feature/123-user-login` or `hotfix/123-login-error`.
 - Never commit directly to `main` or `develop`.
 - Create `feature/<issue-number>-<short-name>` from `develop` for normal work and `hotfix/<issue-number>-<short-name>` from `main` for urgent release fixes, without asking for confirmation.
-- After completing and validating a requested change, create a focused commit containing only the task-related files.
+- After completing and validating a requested change, split the work into atomic commits by user-visible feature or single responsibility. A commit should contain one coherent change that can be reviewed and reverted independently.
+- Keep implementation, tests, documentation, configuration, and unrelated features in separate commits when they represent independently meaningful changes. Include a focused test with its implementation only when separating them would leave the implementation unverifiable or temporarily broken.
+- Do not combine multiple completed features into one catch-all commit merely because they belong to the same request. Before committing, inspect the diff and stage files or hunks according to these boundaries.
 - Choose the commit message without asking. Use `<type>: <subject>` with the appropriate type defined in `CONTRIBUTING.md` and an accurate summary of the completed task.
 - Add `Refs #<issue-number>` to the commit body and feature-to-`develop` pull request. Use `Closes #<issue-number>` only in a pull request targeting `main` so the issue closes with the stable release.
 - Put the implementation summary and validation results in the pull request. Do not duplicate GitHub's commit history with an issue comment for every push; comment only for a meaningful decision, blocker, or status change.
