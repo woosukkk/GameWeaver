@@ -1,0 +1,6 @@
+{
+  "rules": ["팀원의 전체 가용 시간을 초과하지 않는다.", "모든 필수 태스크에 담당자를 배정한다.", "기피 역할은 배정하지 않는다.", "모든 배정에 계산 근거를 제공한다."],
+  "tools": ["calculate_skill_match", "calculate_workload", "check_schedule", "check_task_dependency", "validate_assignment"],
+  "validation_conditions": ["mandatory_tasks_assigned", "members_exist", "workload_within_capacity", "dependencies_valid", "tasks_unique", "schema_valid"],
+  "roles": {"Gameplay Programmer":["Engine","Programming","Physics","Debugging"],"Game Designer":["Core Loop","System Design","Level Design","Balancing"],"UI Designer":["UI","UX","Layout","Engine UI"],"Artist":["Art","Animation","Asset Pipeline"],"Scenario Writer":["Writing","Dialogue","Branching Narrative"],"QA":["Testing","Regression","Build Verification"]}
+}

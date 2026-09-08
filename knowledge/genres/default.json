@@ -1,0 +1,12 @@
+{
+  "context": ["Core Loop", "Gameplay", "Content", "UI", "Quality"],
+  "workflow": ["Project Analysis", "Task Generation", "Task Requirement Analysis", "Member Analysis", "Matching", "Assignment", "Validation"],
+  "roles": ["Gameplay Programmer", "Game Designer", "Artist", "UI Designer"],
+  "tasks": [
+    {"name":"Core Prototype","category":"Gameplay","required_skills":{"ENGINE":3,"Programming":3},"estimated_hours":10,"dependencies":[]},
+    {"name":"Game Rules","category":"Design","required_skills":{"Game Design":3},"estimated_hours":7,"dependencies":[]},
+    {"name":"Content Pass","category":"Content","required_skills":{"Game Design":2,"Art":2},"estimated_hours":8,"dependencies":["Core Prototype"]},
+    {"name":"Main UI","category":"UI","required_skills":{"UI":3,"ENGINE":2},"estimated_hours":6,"dependencies":["Core Prototype"]},
+    {"name":"Playtest & Polish","category":"Quality","required_skills":{"Testing":3,"ENGINE":2},"estimated_hours":6,"dependencies":["Content Pass","Main UI"]}
+  ]
+}

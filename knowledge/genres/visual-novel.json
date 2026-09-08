@@ -1,0 +1,12 @@
+{
+  "context": ["Dialogue", "Scenario", "Character", "Branching Narrative", "Save/Load", "UI", "Localization"],
+  "workflow": ["Project Analysis", "Content Scale Analysis", "Scenario / Art / UI Task Generation", "Workload Estimation", "Role Matching", "Assignment"],
+  "roles": ["Scenario Writer", "UI Designer", "Gameplay Programmer", "Artist"],
+  "tasks": [
+    {"name":"Dialogue System","category":"System","required_skills":{"ENGINE":3,"Programming":3},"estimated_hours":10,"dependencies":[]},
+    {"name":"Branching Scenario","category":"Content","required_skills":{"Writing":4,"Game Design":3},"estimated_hours":12,"dependencies":[]},
+    {"name":"Character Art","category":"Art","required_skills":{"Art":4},"estimated_hours":12,"dependencies":[]},
+    {"name":"Dialogue UI","category":"UI","required_skills":{"UI":4,"ENGINE":2},"estimated_hours":8,"dependencies":["Dialogue System"]},
+    {"name":"Save / Load","category":"System","required_skills":{"Programming":3,"ENGINE":2},"estimated_hours":6,"dependencies":["Dialogue System"]}
+  ]
+}
