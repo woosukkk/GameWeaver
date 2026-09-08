@@ -3,12 +3,13 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="게임 프로젝트의 태스크와 팀 역할을 설계하는 Dynamic Harness">
-  <title>GameWeaver — Build the team that builds the game</title><link rel="stylesheet" href="/styles.css">
+  <title>GameWeaver — Build the team that builds the game</title><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/features.css">
 </head>
 <body>
-  <header class="topbar"><a class="brand" href="/" aria-label="GameWeaver 홈"><span class="mark">GW</span> GameWeaver</a><span class="status"><i></i> Dynamic Harness</span></header>
+  <header class="topbar"><a class="brand" href="/" aria-label="GameWeaver 홈"><span class="mark">GW</span> GameWeaver</a><span class="status" id="server-status"><i></i> 연결 확인 중</span></header>
   <main>
     <section class="hero"><p class="eyebrow">GAME PROJECT ORCHESTRATION</p><h1>아이디어를 <em>실행 가능한 팀 플랜</em>으로.</h1><p>프로젝트의 장르, 일정, 팀 역량을 읽고 필요한 태스크와 가장 현실적인 담당자를 설계합니다.</p></section>
+    <section class="saved" id="saved" hidden><div class="section-head"><span>↻</span><div><h2>최근 계획</h2><p>저장된 계획을 다시 열 수 있습니다.</p></div></div><div id="saved-list" class="saved-list"></div></section>
     <form id="planner-form">
       <section class="panel form-panel">
         <div class="section-head"><span>01</span><div><h2>프로젝트 정의</h2><p>게임의 구조와 이번 개발의 경계를 알려주세요.</p></div></div>
@@ -32,12 +33,13 @@
         </div>
         <label>외부 제약조건 <small>쉼표로 구분</small><input name="constraints" placeholder="무료 에셋만 사용, 모바일 60 FPS 우선"></label>
         <label>프로젝트 설명 / 핵심 게임 루프<textarea name="description" rows="3">던전을 탐색하고 적을 처치해 아이템을 조합한 뒤 보스를 상대하는 짧은 전투 중심 로그라이크.</textarea></label>
+        <label class="toggle"><input name="useAi" type="checkbox" checked><span>Planning Agent 사용</span><small>API 키가 없거나 호출에 실패하면 규칙 기반 계획으로 안전하게 전환합니다.</small></label>
       </section>
       <section class="panel form-panel"><div class="section-head"><span>02</span><div><h2>팀 구성</h2><p>숙련도는 0–5, 여러 항목은 쉼표로 구분합니다.</p></div><button class="ghost" type="button" id="add-member">+ 팀원 추가</button></div><div id="members"></div></section>
       <button class="primary" type="submit"><span>플랜 생성하기</span><b>→</b></button><p class="error" id="error" role="alert"></p>
     </form>
     <section id="results" class="results" hidden>
-      <div class="result-title"><p class="eyebrow">WEAVING COMPLETE</p><h2 id="result-name"></h2><p id="result-summary"></p></div><div class="metrics" id="metrics"></div>
+      <div class="result-title"><p class="eyebrow">WEAVING COMPLETE · <span id="ai-mode"></span></p><h2 id="result-name"></h2><p id="result-summary"></p></div><div class="metrics" id="metrics"></div>
       <div class="result-grid"><section class="panel wide"><div class="panel-title"><h3>Task Map</h3><span id="validation"></span></div><div id="tasks"></div></section><aside class="panel"><div class="panel-title"><h3>Harness Config</h3></div><div id="harness"></div></aside></div>
       <section class="panel"><div class="panel-title"><h3>Team Workload</h3><span>전체 개발 기간 기준</span></div><div id="workloads" class="workloads"></div></section>
       <section class="panel refine"><div><h3>플랜을 다듬어 볼까요?</h3><p>예: “민수는 Enemy AI를 맡지 않게 해줘” 또는 “작업량을 더 균등하게 배분해줘”</p></div><div class="refine-row"><input id="revision" maxlength="500" placeholder="수정 요청을 입력하세요"><button id="refine" type="button">다시 설계</button></div></section>
