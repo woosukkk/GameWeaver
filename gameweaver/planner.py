@@ -98,7 +98,8 @@ def _agent_tasks(items, project):
     tasks = []
     for item in items:
         name = item["name"].strip()
-        skills = item.get("required_skills") or {project["engine"]: 2}
+        raw_skills = item.get("required_skills") or {project["engine"]: 2}
+        skills = {skill["name"]: skill["level"] for skill in raw_skills} if isinstance(raw_skills, list) else raw_skills
         tasks.append({
             "id": names[name],
             "name": name,

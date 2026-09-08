@@ -24,7 +24,15 @@ TASK_SCHEMA = {
                 "properties": {
                     "name": {"type": "string"},
                     "category": {"type": "string"},
-                    "required_skills": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 1, "maximum": 5}},
+                    "required_skills": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {"name": {"type": "string"}, "level": {"type": "integer", "minimum": 1, "maximum": 5}},
+                            "required": ["name", "level"],
+                            "additionalProperties": False
+                        }
+                    },
                     "estimated_hours": {"type": "integer", "minimum": 1, "maximum": 500},
                     "dependencies": {"type": "array", "items": {"type": "string"}},
                     "mandatory": {"type": "boolean"}
