@@ -3,6 +3,7 @@
 import json
 import os
 from contextlib import contextmanager
+from uuid import uuid4
 
 
 class ProjectRepository:
@@ -14,24 +15,42 @@ class ProjectRepository:
                 raise RuntimeError("mysql-connector-python을 설치해 주세요.") from exc
         self.connector = connector
         self.config = config or mysql_config()
-        with self._db() as (_, cursor):
+        with self._db(dictionary=True) as (_, cursor):
             cursor.execute("""CREATE TABLE IF NOT EXISTS plans (
                 id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                project_key CHAR(36) NOT NULL,
                 project_name VARCHAR(255) NOT NULL,
+                version INT UNSIGNED NOT NULL DEFAULT 1,
+                parent_plan_id BIGINT UNSIGNED NULL,
+                status VARCHAR(20) NOT NULL DEFAULT 'draft',
                 input_json JSON NOT NULL,
                 result_json JSON NOT NULL,
                 revision_request VARCHAR(500) NOT NULL DEFAULT '',
                 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 INDEX idx_plans_created_at (created_at)
             ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci""")
+            columns = {
+                "project_key": "ALTER TABLE plans ADD COLUMN project_key CHAR(36) NULL AFTER id",
+                "version": "ALTER TABLE plans ADD COLUMN version INT UNSIGNED NOT NULL DEFAULT 1 AFTER project_name",
+                "parent_plan_id": "ALTER TABLE plans ADD COLUMN parent_plan_id BIGINT UNSIGNED NULL AFTER version",
+                "status": "ALTER TABLE plans ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'draft' AFTER parent_plan_id"
+            }
+            for name, statement in columns.items():
+                cursor.execute("SELECT COUNT(*) AS count FROM information_schema.columns WHERE table_schema=%s AND table_name='plans' AND column_name=%s", (self.config["database"], name))
+                if cursor.fetchone()["count"] == 0:
+                    cursor.execute(statement)
 
-    def save(self, input_data, result):
-        with self._db() as (_, cursor):
+    def save(self, input_data, result, parent_plan_id=None):
+        project_key = input_data["project"].get("id") or str(uuid4())
+        input_data["project"]["id"] = project_key
+        with self._db(dictionary=True) as (_, cursor):
+            cursor.execute("SELECT COALESCE(MAX(version),0)+1 AS version FROM plans WHERE project_key=%s", (project_key,))
+            version = cursor.fetchone()["version"]
             cursor.execute(
-                "INSERT INTO plans(project_name,input_json,result_json,revision_request) VALUES(%s,%s,%s,%s)",
-                (input_data["project"]["name"], _dump(input_data), _dump(result), result.get("revision_request", ""))
+                "INSERT INTO plans(project_key,project_name,version,parent_plan_id,input_json,result_json,revision_request) VALUES(%s,%s,%s,%s,%s,%s,%s)",
+                (project_key, input_data["project"]["name"], version, parent_plan_id, _dump(input_data), _dump(result), result.get("revision_request", ""))
             )
-            return cursor.lastrowid
+            return {"plan_id": cursor.lastrowid, "project_key": project_key, "version": version, "status": "draft"}
 
     def get(self, plan_id):
         with self._db(dictionary=True) as (_, cursor):
@@ -41,9 +60,25 @@ class ProjectRepository:
 
     def list(self, limit=20):
         with self._db(dictionary=True) as (_, cursor):
-            cursor.execute("SELECT id,project_name,revision_request,created_at FROM plans ORDER BY id DESC LIMIT %s", (limit,))
+            cursor.execute("SELECT id,project_key,project_name,version,parent_plan_id,status,revision_request,created_at FROM plans ORDER BY id DESC LIMIT %s", (limit,))
             rows = cursor.fetchall()
         return [_serialize_dates(row) for row in rows]
+
+    def versions(self, project_key):
+        with self._db(dictionary=True) as (_, cursor):
+            cursor.execute("SELECT id,project_key,project_name,version,parent_plan_id,status,revision_request,created_at FROM plans WHERE project_key=%s ORDER BY version", (project_key,))
+            rows = cursor.fetchall()
+        return [_serialize_dates(row) for row in rows]
+
+    def confirm(self, plan_id):
+        with self._db() as (_, cursor):
+            cursor.execute("UPDATE plans SET status='confirmed' WHERE id=%s", (plan_id,))
+            return cursor.rowcount > 0
+
+    def delete_project(self, project_key):
+        with self._db() as (_, cursor):
+            cursor.execute("DELETE FROM plans WHERE project_key=%s", (project_key,))
+            return cursor.rowcount
 
     @contextmanager
     def _db(self, dictionary=False):
