@@ -3,9 +3,34 @@
 import hashlib
 import hmac
 import secrets
+import time
+from collections import defaultdict, deque
+from threading import Lock
 
 
 ITERATIONS = 600_000
+
+
+class RateLimiter:
+    def __init__(self, limit=5, window_seconds=300, clock=None):
+        self.limit, self.window_seconds = limit, window_seconds
+        self.clock = clock or time.monotonic
+        self.attempts, self.lock = defaultdict(deque), Lock()
+
+    def allow(self, key):
+        now = self.clock()
+        with self.lock:
+            attempts = self.attempts[key]
+            while attempts and attempts[0] <= now - self.window_seconds:
+                attempts.popleft()
+            if len(attempts) >= self.limit:
+                return False
+            attempts.append(now)
+            return True
+
+    def reset(self, key):
+        with self.lock:
+            self.attempts.pop(key, None)
 
 
 def hash_password(password, salt=None):
@@ -27,6 +52,10 @@ def verify_password(password, encoded):
 
 def session_token():
     return secrets.token_urlsafe(32)
+
+
+def csrf_token():
+    return secrets.token_urlsafe(24)
 
 
 def token_hash(token):

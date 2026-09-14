@@ -1,6 +1,6 @@
 import unittest
 
-from gameweaver.auth import hash_password, session_token, token_hash, verify_password
+from gameweaver.auth import RateLimiter, csrf_token, hash_password, session_token, token_hash, verify_password
 
 
 class AuthTests(unittest.TestCase):
@@ -19,6 +19,18 @@ class AuthTests(unittest.TestCase):
         token = session_token()
         self.assertNotEqual(token, token_hash(token))
         self.assertEqual(64, len(token_hash(token)))
+
+    def test_rate_limiter_reopens_after_window(self):
+        now = [0]
+        limiter = RateLimiter(limit=2, window_seconds=10, clock=lambda: now[0])
+        self.assertTrue(limiter.allow("client"))
+        self.assertTrue(limiter.allow("client"))
+        self.assertFalse(limiter.allow("client"))
+        now[0] = 11
+        self.assertTrue(limiter.allow("client"))
+
+    def test_csrf_tokens_are_random(self):
+        self.assertNotEqual(csrf_token(), csrf_token())
 
 
 if __name__ == "__main__":

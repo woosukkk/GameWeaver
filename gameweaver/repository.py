@@ -26,6 +26,7 @@ class ProjectRepository:
                     raise RuntimeError("데이터베이스 마이그레이션을 먼저 실행하세요: python migrate.py")
             except self.connector.Error as exc:
                 raise RuntimeError("데이터베이스 마이그레이션을 먼저 실행하세요: python migrate.py") from exc
+            cursor.execute("DELETE FROM sessions WHERE expires_at<=NOW()")
 
     def register(self, email, password):
         email = str(email or "").strip().casefold()
@@ -40,6 +41,7 @@ class ProjectRepository:
 
     def login(self, email, password):
         with self._db(dictionary=True) as (_, cursor):
+            cursor.execute("DELETE FROM sessions WHERE expires_at<=NOW()")
             cursor.execute("SELECT id,email,password_hash FROM users WHERE email=%s", (str(email or "").strip().casefold(),))
             user = cursor.fetchone()
             if not user or not verify_password(password, user["password_hash"]):

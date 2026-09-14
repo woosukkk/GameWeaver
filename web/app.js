@@ -42,7 +42,8 @@ function fillForm(data) {
 async function request(path,payload,method) {
   errorEl.textContent='';
   const options={method:method||(payload?'POST':'GET')};
-  if(payload){options.headers={'Content-Type':'application/json'};options.body=JSON.stringify(payload)}
+  if(payload){options.headers={'Content-Type':'application/json'};const csrf=document.cookie.split('; ').find(value=>value.startsWith('gameweaver_csrf='));if(csrf)options.headers['X-CSRF-Token']=decodeURIComponent(csrf.split('=').slice(1).join('='));options.body=JSON.stringify(payload)}
+  if(options.method==='DELETE'){const csrf=document.cookie.split('; ').find(value=>value.startsWith('gameweaver_csrf='));options.headers={'X-CSRF-Token':csrf?decodeURIComponent(csrf.split('=').slice(1).join('=')):''}}
   const res=await fetch(path,options),data=await res.json();
   if(!res.ok) throw new Error(data.error||'요청에 실패했습니다.');
   return data;
