@@ -78,6 +78,7 @@ class RepositoryTests(unittest.TestCase):
         self.assertEqual("2026-01-01T00:00:00", listed[0]["created_at"])
         self.assertTrue(any("INSERT INTO plans" in query for query, _ in connector.queries))
         self.assertEqual(4, connector.commits)
+        self.assertTrue(any("owner_user_id=%s" in query for query, _ in connector.queries))
 
     def test_confirm_versions_and_delete(self):
         connector = FakeConnector()

@@ -7,6 +7,8 @@ from contextlib import contextmanager
 from statistics import median
 from uuid import uuid4
 
+from .auth import hash_password, session_token, token_hash, verify_password
+
 
 class ProjectRepository:
     def __init__(self, config=None, connector=None):
@@ -18,6 +20,19 @@ class ProjectRepository:
         self.connector = connector
         self.config = config or mysql_config()
         with self._db(dictionary=True) as (_, cursor):
+            cursor.execute("""CREATE TABLE IF NOT EXISTS users (
+                id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                email VARCHAR(254) NOT NULL UNIQUE,
+                password_hash VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci""")
+            cursor.execute("""CREATE TABLE IF NOT EXISTS sessions (
+                token_hash CHAR(64) NOT NULL PRIMARY KEY,
+                user_id BIGINT UNSIGNED NOT NULL,
+                expires_at TIMESTAMP NOT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_sessions_user (user_id), INDEX idx_sessions_expiry (expires_at)
+            ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci""")
             cursor.execute("""CREATE TABLE IF NOT EXISTS plans (
                 id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
                 project_key CHAR(36) NOT NULL,
@@ -36,6 +51,7 @@ class ProjectRepository:
                 "version": "ALTER TABLE plans ADD COLUMN version INT UNSIGNED NOT NULL DEFAULT 1 AFTER project_name",
                 "parent_plan_id": "ALTER TABLE plans ADD COLUMN parent_plan_id BIGINT UNSIGNED NULL AFTER version",
                 "status": "ALTER TABLE plans ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'draft' AFTER parent_plan_id"
+                ,"owner_user_id": "ALTER TABLE plans ADD COLUMN owner_user_id BIGINT UNSIGNED NULL AFTER id"
             }
             for name, statement in columns.items():
                 cursor.execute("SELECT COUNT(*) AS count FROM information_schema.columns WHERE table_schema=%s AND table_name='plans' AND column_name=%s", (self.config["database"], name))
@@ -79,50 +95,83 @@ class ProjectRepository:
                 FULLTEXT KEY ft_retrospective_text (summary, went_well, problems, recommendations)
             ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci""")
 
-    def save(self, input_data, result, parent_plan_id=None):
+    def register(self, email, password):
+        email = str(email or "").strip().casefold()
+        if "@" not in email or len(email) > 254:
+            raise ValueError("올바른 이메일을 입력하세요.")
+        with self._db() as (_, cursor):
+            try:
+                cursor.execute("INSERT INTO users(email,password_hash) VALUES(%s,%s)", (email, hash_password(password)))
+            except self.connector.IntegrityError as exc:
+                raise ValueError("이미 가입된 이메일입니다.") from exc
+        return self.login(email, password)
+
+    def login(self, email, password):
+        with self._db(dictionary=True) as (_, cursor):
+            cursor.execute("SELECT id,email,password_hash FROM users WHERE email=%s", (str(email or "").strip().casefold(),))
+            user = cursor.fetchone()
+            if not user or not verify_password(password, user["password_hash"]):
+                raise ValueError("이메일 또는 비밀번호가 올바르지 않습니다.")
+            token = session_token()
+            cursor.execute("INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(%s,%s,DATE_ADD(NOW(),INTERVAL 30 DAY))", (token_hash(token), user["id"]))
+        return token, {"id": user["id"], "email": user["email"]}
+
+    def session_user(self, token):
+        if not token:
+            return None
+        with self._db(dictionary=True) as (_, cursor):
+            cursor.execute("SELECT u.id,u.email FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=%s AND s.expires_at>NOW()", (token_hash(token),))
+            return cursor.fetchone()
+
+    def logout(self, token):
+        if token:
+            with self._db() as (_, cursor):
+                cursor.execute("DELETE FROM sessions WHERE token_hash=%s", (token_hash(token),))
+
+    def save(self, input_data, result, parent_plan_id=None, user_id=None):
         project_key = input_data["project"].get("id") or str(uuid4())
         input_data["project"]["id"] = project_key
         with self._db(dictionary=True) as (_, cursor):
-            cursor.execute("SELECT COALESCE(MAX(version),0)+1 AS version FROM plans WHERE project_key=%s", (project_key,))
+            cursor.execute("SELECT COALESCE(MAX(version),0)+1 AS version FROM plans WHERE project_key=%s AND owner_user_id=%s", (project_key, user_id))
             version = cursor.fetchone()["version"]
             cursor.execute(
-                "INSERT INTO plans(project_key,project_name,version,parent_plan_id,input_json,result_json,revision_request) VALUES(%s,%s,%s,%s,%s,%s,%s)",
-                (project_key, input_data["project"]["name"], version, parent_plan_id, _dump(input_data), _dump(result), result.get("revision_request", ""))
+                "INSERT INTO plans(owner_user_id,project_key,project_name,version,parent_plan_id,input_json,result_json,revision_request) VALUES(%s,%s,%s,%s,%s,%s,%s,%s)",
+                (user_id, project_key, input_data["project"]["name"], version, parent_plan_id, _dump(input_data), _dump(result), result.get("revision_request", ""))
             )
             return {"plan_id": cursor.lastrowid, "project_key": project_key, "version": version, "status": "draft"}
 
-    def get(self, plan_id):
+    def get(self, plan_id, user_id=None):
         with self._db(dictionary=True) as (_, cursor):
-            cursor.execute("SELECT * FROM plans WHERE id=%s", (plan_id,))
+            cursor.execute("SELECT * FROM plans WHERE id=%s AND owner_user_id=%s", (plan_id, user_id))
             row = cursor.fetchone()
         return _row(row) if row else None
 
-    def list(self, limit=20):
+    def list(self, limit=20, user_id=None):
         with self._db(dictionary=True) as (_, cursor):
-            cursor.execute("SELECT id,project_key,project_name,version,parent_plan_id,status,revision_request,created_at FROM plans ORDER BY id DESC LIMIT %s", (limit,))
+            cursor.execute("SELECT id,project_key,project_name,version,parent_plan_id,status,revision_request,created_at FROM plans WHERE owner_user_id=%s ORDER BY id DESC LIMIT %s", (user_id, limit))
             rows = cursor.fetchall()
         return [_serialize_dates(row) for row in rows]
 
-    def versions(self, project_key):
+    def versions(self, project_key, user_id=None):
         with self._db(dictionary=True) as (_, cursor):
-            cursor.execute("SELECT id,project_key,project_name,version,parent_plan_id,status,revision_request,created_at FROM plans WHERE project_key=%s ORDER BY version", (project_key,))
+            cursor.execute("SELECT id,project_key,project_name,version,parent_plan_id,status,revision_request,created_at FROM plans WHERE project_key=%s AND owner_user_id=%s ORDER BY version", (project_key, user_id))
             rows = cursor.fetchall()
         return [_serialize_dates(row) for row in rows]
 
-    def confirm(self, plan_id):
+    def confirm(self, plan_id, user_id=None):
         with self._db() as (_, cursor):
-            cursor.execute("UPDATE plans SET status='confirmed' WHERE id=%s", (plan_id,))
+            cursor.execute("UPDATE plans SET status='confirmed' WHERE id=%s AND owner_user_id=%s", (plan_id, user_id))
             return cursor.rowcount > 0
 
-    def delete_project(self, project_key):
+    def delete_project(self, project_key, user_id=None):
         with self._db() as (_, cursor):
-            cursor.execute("DELETE o FROM task_outcomes o JOIN plans p ON p.id=o.plan_id WHERE p.project_key=%s", (project_key,))
-            cursor.execute("DELETE FROM project_retrospectives WHERE project_key=%s", (project_key,))
-            cursor.execute("DELETE FROM plans WHERE project_key=%s", (project_key,))
+            cursor.execute("DELETE o FROM task_outcomes o JOIN plans p ON p.id=o.plan_id WHERE p.project_key=%s AND p.owner_user_id=%s", (project_key, user_id))
+            cursor.execute("DELETE r FROM project_retrospectives r JOIN plans p ON p.id=r.plan_id WHERE r.project_key=%s AND p.owner_user_id=%s", (project_key, user_id))
+            cursor.execute("DELETE FROM plans WHERE project_key=%s AND owner_user_id=%s", (project_key, user_id))
             return cursor.rowcount
 
-    def save_outcomes(self, plan_id, outcomes):
-        plan = self.get(plan_id)
+    def save_outcomes(self, plan_id, outcomes, user_id=None):
+        plan = self.get(plan_id, user_id)
         if not plan:
             raise ValueError("계획을 찾을 수 없습니다.")
         tasks = {task["id"]: task for task in plan["result"]["tasks"]}
@@ -144,19 +193,19 @@ class ProjectRepository:
                     (plan_id, task["id"], task["name"], project["genre"], project["engine"], task["estimated_hours"], actual, bool(outcome.get("completed", True)), rework, _dump(outcome.get("blockers", [])), issues))
         return len(outcomes)
 
-    def calibrations(self, min_samples=3):
+    def calibrations(self, min_samples=3, user_id=None):
         with self._db(dictionary=True) as (_, cursor):
             cursor.execute("""SELECT o.genre,o.engine,o.task_name,o.estimated_hours,o.actual_hours
                 FROM task_outcomes o JOIN plans p ON p.id=o.plan_id
-                WHERE o.completed=TRUE AND o.actual_hours>0 AND o.estimated_hours>0 AND p.status='confirmed'""")
+                WHERE o.completed=TRUE AND o.actual_hours>0 AND o.estimated_hours>0 AND p.status='confirmed' AND p.owner_user_id=%s""", (user_id,))
             rows = cursor.fetchall()
         groups = defaultdict(list)
         for row in rows:
             groups[(row["genre"], row["engine"], row["task_name"])].append(float(row["actual_hours"]) / float(row["estimated_hours"]))
         return [{"genre": key[0], "engine": key[1], "task_name": key[2], "sample_count": len(values), "effort_factor": round(median(values), 2)} for key, values in groups.items() if len(values) >= min_samples]
 
-    def save_retrospective(self, plan_id, data):
-        plan = self.get(plan_id)
+    def save_retrospective(self, plan_id, data, user_id=None):
+        plan = self.get(plan_id, user_id)
         if not plan or plan["status"] not in ("confirmed", "completed"):
             raise ValueError("확정된 계획만 완료할 수 있습니다.")
         satisfaction = data.get("satisfaction")
@@ -174,15 +223,15 @@ class ProjectRepository:
                 (plan_id, plan["project_key"], plan["project_name"], project["genre"], project["engine"], satisfaction, bool(data.get("core_loop_achieved")), *values))
             cursor.execute("UPDATE plans SET status='completed' WHERE id=%s", (plan_id,))
 
-    def similar_cases(self, project, limit=3):
+    def similar_cases(self, project, limit=3, user_id=None):
         terms = " ".join([project.get("name", ""), project.get("genre", ""), project.get("engine", ""), *project.get("mandatory_features", [])]).strip()
         with self._db(dictionary=True) as (_, cursor):
-            cursor.execute("""SELECT plan_id,project_name,genre,engine,satisfaction,core_loop_achieved,summary,went_well,problems,recommendations,
+            cursor.execute("""SELECT r.plan_id,r.project_name,r.genre,r.engine,r.satisfaction,r.core_loop_achieved,r.summary,r.went_well,r.problems,r.recommendations,
                 MATCH(summary,went_well,problems,recommendations) AGAINST (%s IN NATURAL LANGUAGE MODE) AS text_score
-                FROM project_retrospectives
-                WHERE genre=%s OR engine=%s OR MATCH(summary,went_well,problems,recommendations) AGAINST (%s IN NATURAL LANGUAGE MODE)
-                ORDER BY (genre=%s)+(engine=%s) DESC,text_score DESC,updated_at DESC LIMIT %s""",
-                (terms, project.get("genre"), project.get("engine"), terms, project.get("genre"), project.get("engine"), limit))
+                FROM project_retrospectives r JOIN plans p ON p.id=r.plan_id
+                WHERE p.owner_user_id=%s AND (r.genre=%s OR r.engine=%s OR MATCH(summary,went_well,problems,recommendations) AGAINST (%s IN NATURAL LANGUAGE MODE))
+                ORDER BY (r.genre=%s)+(r.engine=%s) DESC,text_score DESC,r.updated_at DESC LIMIT %s""",
+                (terms, user_id, project.get("genre"), project.get("engine"), terms, project.get("genre"), project.get("engine"), limit))
             rows = cursor.fetchall()
         return [_serialize_dates(row) for row in rows]
 
