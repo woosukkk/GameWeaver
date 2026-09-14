@@ -244,12 +244,13 @@ Match Score = Skill + Experience + Preference + Availability + Learning Interest
 
 ## 실행
 
-Python 3.11 이상과 MySQL 서버가 필요합니다. MySQL에 `gameweaver` 데이터베이스와 접근 계정을 먼저 만들고 환경변수에 입력합니다. `plans` 테이블은 앱 시작 시 자동 생성됩니다.
+Python 3.11 이상과 MySQL 서버가 필요합니다. MySQL에 `gameweaver` 데이터베이스와 접근 계정을 먼저 만들고 환경변수에 입력합니다. 앱 실행 전에 버전형 SQL 마이그레이션을 적용합니다.
 
 ```powershell
 python -m pip install -r requirements.txt
 Copy-Item .env.example .env
 # .env의 OPENAI_API_KEY와 MYSQL_* 값을 입력
+python migrate.py
 python app.py
 ```
 
@@ -260,6 +261,7 @@ python app.py
 ## 명령어
 
 - 실행: `python app.py`
+- DB 마이그레이션: `python migrate.py`
 - 테스트: `python -m unittest discover -s tests -v`
 - 문법 검사: `python -m compileall app.py gameweaver tests`
 - 설치: `python -m pip install -r requirements.txt`
