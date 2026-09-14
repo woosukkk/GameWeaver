@@ -106,7 +106,7 @@ class RepositoryTests(unittest.TestCase):
         repository.save_retrospective(7, {"satisfaction": 4, "core_loop_achieved": True, "summary": "핵심 전투 완성"})
         cases = repository.similar_cases({"name": "새 게임", "genre": "Roguelike", "engine": "Unity", "mandatory_features": ["Combat"]})
         self.assertEqual("이전 게임", cases[0]["project_name"])
-        self.assertTrue(any("FULLTEXT KEY" in query for query, _ in connector.queries))
+        self.assertTrue(any("MATCH(summary" in query for query, _ in connector.queries))
 
     def test_mysql_config_requires_credentials(self):
         with patch.dict("os.environ", {}, clear=True), self.assertRaisesRegex(RuntimeError, "MYSQL_USER"):
