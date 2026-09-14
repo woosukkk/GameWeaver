@@ -1,6 +1,8 @@
 const membersEl = document.querySelector('#members');
 const form = document.querySelector('#planner-form');
 const errorEl = document.querySelector('#error');
+const authEl = document.querySelector('#auth');
+const workspaceEl = document.querySelector('#workspace');
 let lastInput = null;
 let currentPlanId = null;
 let currentProjectKey = null;
@@ -81,7 +83,12 @@ async function loadSaved() {
   } catch (_) {}
 }
 
-async function initialize(){const health=await request('/api/health');document.querySelector('#server-status').innerHTML=`<i></i> ${health.ai_configured?'AI READY':'RULE ENGINE'}`;loadSaved()}
+function showUser(user){authEl.hidden=true;workspaceEl.hidden=false;document.querySelector('#user-email').textContent=user.email;document.querySelector('#logout').hidden=false;loadSaved()}
+async function initialize(){const health=await request('/api/health');document.querySelector('#server-status').innerHTML=`<i></i> ${health.ai_configured?'AI READY':'RULE ENGINE'}`;try{showUser((await request('/api/auth/me')).user)}catch(_){authEl.hidden=false}}
+async function authenticate(path){const error=document.querySelector('#auth-error');error.textContent='';try{showUser((await request(path,{email:document.querySelector('#auth-email').value,password:document.querySelector('#auth-password').value})).user)}catch(exc){error.textContent=exc.message}}
+document.querySelector('#auth-form').onsubmit=event=>{event.preventDefault();authenticate('/api/auth/login')};
+document.querySelector('#register').onclick=()=>authenticate('/api/auth/register');
+document.querySelector('#logout').onclick=async()=>{await request('/api/auth/logout',{});location.reload()};
 async function busy(button,action){button.disabled=true;document.body.classList.add('loading');try{await action()}finally{button.disabled=false;document.body.classList.remove('loading')}}
 document.querySelector('#confirm-plan').onclick=async event=>busy(event.currentTarget,async()=>{if(!currentPlanId)return;await request(`/api/plans/${currentPlanId}/confirm`,{});event.currentTarget.textContent='확정됨';loadSaved()});
 document.querySelector('#delete-project').onclick=async()=>{if(!currentProjectKey||!confirm('이 프로젝트의 모든 계획 버전을 삭제할까요?'))return;await request(`/api/projects/${currentProjectKey}`,null,'DELETE');document.querySelector('#results').hidden=true;loadSaved()};
