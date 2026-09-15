@@ -66,13 +66,20 @@ class ProjectRepository:
         project_key = input_data["project"].get("id") or str(uuid4())
         input_data["project"]["id"] = project_key
         with self._db(dictionary=True) as (_, cursor):
+            lock_name = "gw:" + token_hash(f"{user_id}:{project_key}")[:48]
+            cursor.execute("SELECT GET_LOCK(%s,5) AS acquired", (lock_name,))
+            if cursor.fetchone()["acquired"] != 1:
+                raise RuntimeError("프로젝트 버전 잠금을 얻지 못했습니다. 다시 시도하세요.")
             cursor.execute("SELECT COALESCE(MAX(version),0)+1 AS version FROM plans WHERE project_key=%s AND owner_user_id=%s", (project_key, user_id))
             version = cursor.fetchone()["version"]
             cursor.execute(
                 "INSERT INTO plans(owner_user_id,project_key,project_name,version,parent_plan_id,input_json,result_json,revision_request) VALUES(%s,%s,%s,%s,%s,%s,%s,%s)",
                 (user_id, project_key, input_data["project"]["name"], version, parent_plan_id, _dump(input_data), _dump(result), result.get("revision_request", ""))
             )
-            return {"plan_id": cursor.lastrowid, "project_key": project_key, "version": version, "status": "draft"}
+            plan_id = cursor.lastrowid
+            cursor.execute("SELECT RELEASE_LOCK(%s)", (lock_name,))
+            cursor.fetchone()
+            return {"plan_id": plan_id, "project_key": project_key, "version": version, "status": "draft"}
 
     def get(self, plan_id, user_id=None):
         with self._db(dictionary=True) as (_, cursor):
@@ -167,7 +174,7 @@ class ProjectRepository:
                 VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                 ON DUPLICATE KEY UPDATE satisfaction=VALUES(satisfaction),core_loop_achieved=VALUES(core_loop_achieved),summary=VALUES(summary),went_well=VALUES(went_well),problems=VALUES(problems),recommendations=VALUES(recommendations)""",
                 (plan_id, plan["project_key"], plan["project_name"], project["genre"], project["engine"], satisfaction, bool(data.get("core_loop_achieved")), *values))
-            cursor.execute("UPDATE plans SET status='completed' WHERE id=%s", (plan_id,))
+            cursor.execute("UPDATE plans SET status='completed' WHERE id=%s AND owner_user_id=%s", (plan_id, user_id))
 
     def similar_cases(self, project, limit=3, user_id=None):
         terms = " ".join([project.get("name", ""), project.get("genre", ""), project.get("engine", ""), *project.get("mandatory_features", [])]).strip()

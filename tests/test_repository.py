@@ -21,6 +21,8 @@ class FakeCursor:
             return {"count": 0}
         if "MAX(version)" in self.query:
             return {"version": 1}
+        if "GET_LOCK" in self.query:
+            return {"acquired": 1}
         if "FROM project_retrospectives" in self.query:
             return self.connector.retrospective
         return self.connector.detail
