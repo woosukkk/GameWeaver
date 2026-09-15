@@ -66,11 +66,17 @@ class ProjectRepository:
         project_key = input_data["project"].get("id") or str(uuid4())
         input_data["project"]["id"] = project_key
         with self._db(dictionary=True) as (_, cursor):
+            cursor.execute("SELECT role FROM project_members WHERE project_key=%s AND user_id=%s", (project_key, user_id))
+            membership = cursor.fetchone()
+            if membership and membership["role"] == "viewer":
+                raise ValueError("보기 전용 멤버는 계획을 변경할 수 없습니다.")
+            if not membership:
+                cursor.execute("INSERT INTO project_members(project_key,user_id,role) VALUES(%s,%s,'owner')", (project_key, user_id))
             lock_name = "gw:" + token_hash(f"{user_id}:{project_key}")[:48]
             cursor.execute("SELECT GET_LOCK(%s,5) AS acquired", (lock_name,))
             if cursor.fetchone()["acquired"] != 1:
                 raise RuntimeError("프로젝트 버전 잠금을 얻지 못했습니다. 다시 시도하세요.")
-            cursor.execute("SELECT COALESCE(MAX(version),0)+1 AS version FROM plans WHERE project_key=%s AND owner_user_id=%s", (project_key, user_id))
+            cursor.execute("SELECT COALESCE(MAX(version),0)+1 AS version FROM plans WHERE project_key=%s", (project_key,))
             version = cursor.fetchone()["version"]
             cursor.execute(
                 "INSERT INTO plans(owner_user_id,project_key,project_name,version,parent_plan_id,input_json,result_json,revision_request) VALUES(%s,%s,%s,%s,%s,%s,%s,%s)",
@@ -83,25 +89,25 @@ class ProjectRepository:
 
     def get(self, plan_id, user_id=None):
         with self._db(dictionary=True) as (_, cursor):
-            cursor.execute("SELECT * FROM plans WHERE id=%s AND owner_user_id=%s", (plan_id, user_id))
+            cursor.execute("SELECT p.* FROM plans p JOIN project_members pm ON pm.project_key=p.project_key WHERE p.id=%s AND pm.user_id=%s", (plan_id, user_id))
             row = cursor.fetchone()
         return _row(row) if row else None
 
     def list(self, limit=20, user_id=None):
         with self._db(dictionary=True) as (_, cursor):
-            cursor.execute("SELECT id,project_key,project_name,version,parent_plan_id,status,revision_request,created_at FROM plans WHERE owner_user_id=%s ORDER BY id DESC LIMIT %s", (user_id, limit))
+            cursor.execute("SELECT p.id,p.project_key,p.project_name,p.version,p.parent_plan_id,p.status,p.revision_request,p.created_at,pm.role FROM plans p JOIN project_members pm ON pm.project_key=p.project_key AND pm.user_id=%s ORDER BY p.id DESC LIMIT %s", (user_id, limit))
             rows = cursor.fetchall()
         return [_serialize_dates(row) for row in rows]
 
     def versions(self, project_key, user_id=None):
         with self._db(dictionary=True) as (_, cursor):
-            cursor.execute("SELECT id,project_key,project_name,version,parent_plan_id,status,revision_request,created_at FROM plans WHERE project_key=%s AND owner_user_id=%s ORDER BY version", (project_key, user_id))
+            cursor.execute("SELECT p.id,p.project_key,p.project_name,p.version,p.parent_plan_id,p.status,p.revision_request,p.created_at,pm.role FROM plans p JOIN project_members pm ON pm.project_key=p.project_key WHERE p.project_key=%s AND pm.user_id=%s ORDER BY p.version", (project_key, user_id))
             rows = cursor.fetchall()
         return [_serialize_dates(row) for row in rows]
 
     def confirm(self, plan_id, user_id=None):
         with self._db(dictionary=True) as (_, cursor):
-            cursor.execute("SELECT status,result_json FROM plans WHERE id=%s AND owner_user_id=%s FOR UPDATE", (plan_id, user_id))
+            cursor.execute("SELECT p.status,p.result_json FROM plans p JOIN project_members pm ON pm.project_key=p.project_key WHERE p.id=%s AND pm.user_id=%s AND pm.role IN ('owner','editor') FOR UPDATE", (plan_id, user_id))
             plan = cursor.fetchone()
             if not plan:
                 return False
@@ -111,15 +117,21 @@ class ProjectRepository:
                 raise ValueError("완료된 계획은 다시 확정할 수 없습니다.")
             if plan["status"] == "confirmed":
                 return True
-            cursor.execute("UPDATE plans SET status='confirmed' WHERE id=%s AND owner_user_id=%s", (plan_id, user_id))
+            cursor.execute("UPDATE plans SET status='confirmed' WHERE id=%s", (plan_id,))
             return cursor.rowcount > 0
 
     def delete_project(self, project_key, user_id=None):
         with self._db() as (_, cursor):
-            cursor.execute("DELETE o FROM task_outcomes o JOIN plans p ON p.id=o.plan_id WHERE p.project_key=%s AND p.owner_user_id=%s", (project_key, user_id))
-            cursor.execute("DELETE r FROM project_retrospectives r JOIN plans p ON p.id=r.plan_id WHERE r.project_key=%s AND p.owner_user_id=%s", (project_key, user_id))
-            cursor.execute("DELETE FROM plans WHERE project_key=%s AND owner_user_id=%s", (project_key, user_id))
-            return cursor.rowcount
+            cursor.execute("SELECT COUNT(*) FROM project_members WHERE project_key=%s AND user_id=%s AND role='owner'", (project_key, user_id))
+            if cursor.fetchone()[0] == 0:
+                return 0
+            cursor.execute("DELETE o FROM task_outcomes o JOIN plans p ON p.id=o.plan_id WHERE p.project_key=%s", (project_key,))
+            cursor.execute("DELETE FROM project_retrospectives WHERE project_key=%s", (project_key,))
+            cursor.execute("DELETE FROM plans WHERE project_key=%s", (project_key,))
+            deleted = cursor.rowcount
+            cursor.execute("DELETE FROM project_invitations WHERE project_key=%s", (project_key,))
+            cursor.execute("DELETE FROM project_members WHERE project_key=%s", (project_key,))
+            return deleted
 
     def save_outcomes(self, plan_id, outcomes, user_id=None):
         plan = self.get(plan_id, user_id)
@@ -127,6 +139,8 @@ class ProjectRepository:
             raise ValueError("계획을 찾을 수 없습니다.")
         if plan["status"] not in ("confirmed", "completed"):
             raise ValueError("확정된 계획에만 실측 데이터를 저장할 수 있습니다.")
+        if not self.can_edit(plan["project_key"], user_id):
+            raise ValueError("보기 전용 멤버는 실측 데이터를 변경할 수 없습니다.")
         tasks = {task["id"]: task for task in plan["result"]["tasks"]}
         project = plan["input"]["project"]
         with self._db() as (_, cursor):
@@ -149,8 +163,8 @@ class ProjectRepository:
     def calibrations(self, min_samples=3, user_id=None):
         with self._db(dictionary=True) as (_, cursor):
             cursor.execute("""SELECT o.genre,o.engine,o.task_name,o.estimated_hours,o.actual_hours
-                FROM task_outcomes o JOIN plans p ON p.id=o.plan_id
-                WHERE o.completed=TRUE AND o.actual_hours>0 AND o.estimated_hours>0 AND p.status IN ('confirmed','completed') AND p.owner_user_id=%s""", (user_id,))
+                FROM task_outcomes o JOIN plans p ON p.id=o.plan_id JOIN project_members pm ON pm.project_key=p.project_key
+                WHERE o.completed=TRUE AND o.actual_hours>0 AND o.estimated_hours>0 AND p.status IN ('confirmed','completed') AND pm.user_id=%s""", (user_id,))
             rows = cursor.fetchall()
         groups = defaultdict(list)
         for row in rows:
@@ -161,6 +175,8 @@ class ProjectRepository:
         plan = self.get(plan_id, user_id)
         if not plan or plan["status"] not in ("confirmed", "completed"):
             raise ValueError("확정된 계획만 완료할 수 있습니다.")
+        if not self.can_edit(plan["project_key"], user_id):
+            raise ValueError("보기 전용 멤버는 회고를 변경할 수 없습니다.")
         satisfaction = data.get("satisfaction")
         if not isinstance(satisfaction, int) or not 1 <= satisfaction <= 5:
             raise ValueError("만족도는 1~5 사이의 정수여야 합니다.")
@@ -174,7 +190,7 @@ class ProjectRepository:
                 VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                 ON DUPLICATE KEY UPDATE satisfaction=VALUES(satisfaction),core_loop_achieved=VALUES(core_loop_achieved),summary=VALUES(summary),went_well=VALUES(went_well),problems=VALUES(problems),recommendations=VALUES(recommendations)""",
                 (plan_id, plan["project_key"], plan["project_name"], project["genre"], project["engine"], satisfaction, bool(data.get("core_loop_achieved")), *values))
-            cursor.execute("UPDATE plans SET status='completed' WHERE id=%s AND owner_user_id=%s", (plan_id, user_id))
+            cursor.execute("UPDATE plans SET status='completed' WHERE id=%s", (plan_id,))
 
     def similar_cases(self, project, limit=3, user_id=None):
         terms = " ".join([project.get("name", ""), project.get("genre", ""), project.get("engine", ""), *project.get("mandatory_features", [])]).strip()
@@ -182,7 +198,8 @@ class ProjectRepository:
             cursor.execute("""SELECT r.plan_id,r.project_name,r.genre,r.engine,r.satisfaction,r.core_loop_achieved,r.summary,r.went_well,r.problems,r.recommendations,
                 MATCH(summary,went_well,problems,recommendations) AGAINST (%s IN NATURAL LANGUAGE MODE) AS text_score
                 FROM project_retrospectives r JOIN plans p ON p.id=r.plan_id
-                WHERE p.owner_user_id=%s AND (r.genre=%s OR r.engine=%s OR MATCH(summary,went_well,problems,recommendations) AGAINST (%s IN NATURAL LANGUAGE MODE))
+                JOIN project_members pm ON pm.project_key=p.project_key
+                WHERE pm.user_id=%s AND (r.genre=%s OR r.engine=%s OR MATCH(summary,went_well,problems,recommendations) AGAINST (%s IN NATURAL LANGUAGE MODE))
                 ORDER BY (r.genre=%s)+(r.engine=%s) DESC,text_score DESC,r.updated_at DESC LIMIT %s""",
                 (terms, user_id, project.get("genre"), project.get("engine"), terms, project.get("genre"), project.get("engine"), limit))
             rows = cursor.fetchall()
@@ -201,6 +218,53 @@ class ProjectRepository:
             outcome["rework_hours"] = float(outcome["rework_hours"])
             outcome["blockers"] = json.loads(outcome["blockers"]) if isinstance(outcome["blockers"], str) else outcome["blockers"]
         return {"outcomes": outcomes, "retrospective": retrospective}
+
+    def can_edit(self, project_key, user_id):
+        with self._db() as (_, cursor):
+            cursor.execute("SELECT COUNT(*) FROM project_members WHERE project_key=%s AND user_id=%s AND role IN ('owner','editor')", (project_key, user_id))
+            return cursor.fetchone()[0] > 0
+
+    def members(self, project_key, user_id):
+        if not self.get_by_project(project_key, user_id):
+            return None
+        with self._db(dictionary=True) as (_, cursor):
+            cursor.execute("SELECT u.email,pm.role FROM project_members pm JOIN users u ON u.id=pm.user_id WHERE pm.project_key=%s ORDER BY pm.created_at", (project_key,))
+            return cursor.fetchall()
+
+    def get_by_project(self, project_key, user_id):
+        with self._db(dictionary=True) as (_, cursor):
+            cursor.execute("SELECT p.id FROM plans p JOIN project_members pm ON pm.project_key=p.project_key WHERE p.project_key=%s AND pm.user_id=%s LIMIT 1", (project_key, user_id))
+            return cursor.fetchone()
+
+    def invite(self, project_key, email, role, user_id):
+        if role not in ("editor", "viewer"):
+            raise ValueError("초대 역할은 editor 또는 viewer여야 합니다.")
+        email = str(email or "").strip().casefold()
+        if "@" not in email or len(email) > 254:
+            raise ValueError("올바른 이메일을 입력하세요.")
+        with self._db() as (_, cursor):
+            cursor.execute("SELECT COUNT(*) FROM project_members WHERE project_key=%s AND user_id=%s AND role='owner'", (project_key, user_id))
+            if cursor.fetchone()[0] == 0:
+                raise ValueError("프로젝트 소유자만 초대할 수 있습니다.")
+            cursor.execute("SELECT COUNT(*) FROM project_members WHERE project_key=%s", (project_key,))
+            if cursor.fetchone()[0] >= 6:
+                raise ValueError("프로젝트 멤버는 최대 6명입니다.")
+            token = session_token()
+            cursor.execute("INSERT INTO project_invitations(token_hash,project_key,email,role,invited_by,expires_at) VALUES(%s,%s,%s,%s,%s,DATE_ADD(NOW(),INTERVAL 7 DAY))", (token_hash(token), project_key, email, role, user_id))
+            return token
+
+    def accept_invitation(self, token, user_id):
+        with self._db(dictionary=True) as (_, cursor):
+            cursor.execute("SELECT i.project_key,i.role,u.email FROM project_invitations i JOIN users u ON u.id=%s WHERE i.token_hash=%s AND i.email=u.email AND i.expires_at>NOW() FOR UPDATE", (user_id, token_hash(str(token or ""))))
+            invitation = cursor.fetchone()
+            if not invitation:
+                raise ValueError("유효한 초대를 찾을 수 없습니다.")
+            cursor.execute("SELECT COUNT(*) FROM project_members WHERE project_key=%s", (invitation["project_key"],))
+            if cursor.fetchone()[0] >= 6:
+                raise ValueError("프로젝트 멤버는 최대 6명입니다.")
+            cursor.execute("INSERT INTO project_members(project_key,user_id,role) VALUES(%s,%s,%s) ON DUPLICATE KEY UPDATE role=VALUES(role)", (invitation["project_key"], user_id, invitation["role"]))
+            cursor.execute("DELETE FROM project_invitations WHERE token_hash=%s", (token_hash(token),))
+            return invitation["project_key"]
 
     @contextmanager
     def _db(self, dictionary=False):

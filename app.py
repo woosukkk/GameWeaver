@@ -85,6 +85,9 @@ class Handler(SimpleHTTPRequestHandler):
             except ValueError:
                 feedback = None
             return self._json(200, feedback) if feedback is not None else self._json(404, {"error": "계획을 찾을 수 없습니다."})
+        if path.startswith("/api/projects/") and path.endswith("/members"):
+            members = REPOSITORY.members(path.split("/")[3], user["id"])
+            return self._json(200, {"members": members}) if members is not None else self._json(404, {"error": "프로젝트를 찾을 수 없습니다."})
         if path.startswith("/api/plans/"):
             try:
                 plan = REPOSITORY.get(int(path.rsplit("/", 1)[1]), user["id"])
@@ -134,6 +137,12 @@ class Handler(SimpleHTTPRequestHandler):
                 result = create_plan(payload, effort_factors=effort_factors(payload, user["id"]), similar_cases=REPOSITORY.similar_cases(payload["project"], user_id=user["id"]))
                 result.update(REPOSITORY.save(payload, result, user_id=user["id"]))
                 return self._json(200, result)
+            if self.path == "/api/invitations/accept":
+                return self._json(200, {"project_key": REPOSITORY.accept_invitation(payload.get("token"), user["id"])})
+            if self.path.startswith("/api/projects/") and self.path.endswith("/invitations"):
+                project_key = self.path.split("/")[3]
+                token = REPOSITORY.invite(project_key, payload.get("email"), payload.get("role", "editor"), user["id"])
+                return self._json(200, {"invitation_token": token, "expires_in_days": 7})
             if self.path == "/api/refine":
                 result = refine_plan(payload, effort_factors=effort_factors(payload["input"], user["id"]), similar_cases=REPOSITORY.similar_cases(payload["input"]["project"], user_id=user["id"]))
                 result.update(REPOSITORY.save(payload["input"], result, payload.get("parent_plan_id"), user["id"]))

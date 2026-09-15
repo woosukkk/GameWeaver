@@ -23,11 +23,19 @@ class FakeCursor:
             return {"version": 1}
         if "GET_LOCK" in self.query:
             return {"acquired": 1}
+        if "SELECT role FROM project_members" in self.query:
+            return {"role": "owner"}
+        if "SELECT COUNT(*) FROM project_members" in self.query:
+            return (1,)
+        if "FROM project_invitations" in self.query:
+            return {"project_key": "project-1", "role": "editor", "email": "member@example.com"}
         if "FROM project_retrospectives" in self.query:
             return self.connector.retrospective
         return self.connector.detail
 
     def fetchall(self):
+        if "JOIN users u ON u.id=pm.user_id" in self.query:
+            return [{"email": "owner@example.com", "role": "owner"}]
         if "FROM project_retrospectives" in self.query:
             return [{"plan_id": 7, "project_name": "이전 게임", "genre": "Roguelike", "engine": "Unity", "satisfaction": 4, "core_loop_achieved": 1, "summary": "전투 범위를 줄여 완성", "went_well": "", "problems": "", "recommendations": "", "text_score": 1.0}]
         if "FROM task_outcomes" in self.query:
@@ -85,7 +93,7 @@ class RepositoryTests(unittest.TestCase):
         self.assertEqual("2026-01-01T00:00:00", listed[0]["created_at"])
         self.assertTrue(any("INSERT INTO plans" in query for query, _ in connector.queries))
         self.assertEqual(4, connector.commits)
-        self.assertTrue(any("owner_user_id=%s" in query for query, _ in connector.queries))
+        self.assertTrue(any("JOIN project_members" in query for query, _ in connector.queries))
 
     def test_confirm_versions_and_delete(self):
         connector = FakeConnector()
@@ -120,6 +128,20 @@ class RepositoryTests(unittest.TestCase):
         self.assertEqual(15.0, feedback["outcomes"][0]["actual_hours"])
         self.assertEqual(["asset"], feedback["outcomes"][0]["blockers"])
         self.assertEqual("완료", feedback["retrospective"]["summary"])
+
+    def test_owner_can_invite_and_member_can_accept(self):
+        connector = FakeConnector()
+        repository = ProjectRepository({"database": "gameweaver"}, connector)
+        token = repository.invite("project-1", "member@example.com", "editor", 1)
+        project_key = repository.accept_invitation(token, 2)
+        self.assertEqual("project-1", project_key)
+        self.assertTrue(any("INSERT INTO project_invitations" in query for query, _ in connector.queries))
+        self.assertTrue(any("INSERT INTO project_members" in query for query, _ in connector.queries))
+
+    def test_project_members_are_listed(self):
+        connector = FakeConnector()
+        repository = ProjectRepository({"database": "gameweaver"}, connector)
+        self.assertEqual("owner", repository.members("project-1", 1)[0]["role"])
 
     def test_completed_retrospective_is_searchable(self):
         connector = FakeConnector()
