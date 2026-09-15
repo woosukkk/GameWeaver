@@ -1,8 +1,10 @@
 """GameWeaver HTTP API and static web server (standard library only)."""
 
 import json
+import logging
 import os
 import secrets
+import time
 from http.cookies import SimpleCookie
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -11,6 +13,7 @@ from urllib.parse import urlparse
 from gameweaver import create_plan, refine_plan
 from gameweaver.config import load_env
 from gameweaver.auth import RateLimiter, csrf_token
+from gameweaver.observability import event, request_id
 from gameweaver.repository import ProjectRepository
 
 ROOT = Path(__file__).parent
@@ -19,6 +22,12 @@ REPOSITORY = ProjectRepository()
 AUTH_LIMITER = RateLimiter()
 # ponytail: process-local limiter; move counters to a shared store when multiple workers are deployed.
 IP_AUTH_LIMITER = RateLimiter(limit=20)
+LOGGER = logging.getLogger("gameweaver")
+if not LOGGER.handlers:
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter("%(message)s"))
+    LOGGER.addHandler(handler)
+LOGGER.setLevel(logging.INFO)
 
 
 def effort_factors(payload, user_id):
@@ -28,7 +37,25 @@ def effort_factors(payload, user_id):
 
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
+        self.started_at = time.monotonic()
+        self.trace_id = None
+        self.user_id = None
         super().__init__(*args, directory=str(ROOT / "web"), **kwargs)
+
+    def _trace_id(self):
+        if not self.trace_id:
+            self.trace_id = request_id(self.headers.get("X-Request-ID"))
+        return self.trace_id
+
+    def log_request(self, code="-", size="-"):
+        LOGGER.info(event("http_request", request_id=self._trace_id(), method=self.command, path=urlparse(self.path).path, status=code, duration_ms=round((time.monotonic() - self.started_at) * 1000, 1), user_id=self.user_id))
+
+    def log_message(self, format, *args):
+        LOGGER.warning(event("server_message", request_id=self._trace_id(), message=format % args))
+
+    def end_headers(self):
+        self.send_header("X-Request-ID", self._trace_id())
+        super().end_headers()
 
     def _json(self, status, payload, cookies=None):
         body = json.dumps(payload, ensure_ascii=False).encode()
@@ -43,7 +70,9 @@ class Handler(SimpleHTTPRequestHandler):
     def _user(self):
         cookie = SimpleCookie(self.headers.get("Cookie", ""))
         token = cookie.get("gameweaver_session")
-        return REPOSITORY.session_user(token.value if token else None)
+        user = REPOSITORY.session_user(token.value if token else None)
+        self.user_id = user["id"] if user else None
+        return user
 
     def _cookies(self):
         return SimpleCookie(self.headers.get("Cookie", ""))
@@ -172,7 +201,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self._json(404, {"error": "API를 찾을 수 없습니다."})
         except (ValueError, TypeError, json.JSONDecodeError) as exc:
             return self._json(400, {"error": str(exc)})
-        except Exception:
+        except Exception as exc:
+            LOGGER.exception(event("unhandled_error", request_id=self._trace_id(), method=self.command, path=urlparse(self.path).path, error_type=type(exc).__name__))
             return self._json(500, {"error": "계획 생성 중 오류가 발생했습니다."})
 
     def do_DELETE(self):
