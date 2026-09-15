@@ -13,9 +13,11 @@ const defaults = [
 ];
 
 function memberCard(data={}) {
+  const values={name:data.name||'',skills:data.skills||'',hours:data.hours||10,preferred:data.preferred||'',avoid:data.avoid||'',learning:data.learning||'',experience:data.experience||'',projects:data.projects||''};
   const el=document.createElement('article');
   el.className='member';
-  el.innerHTML=`<h3>TEAM MEMBER</h3><button class="remove" type="button" aria-label="팀원 삭제">삭제</button><div class="grid three"><label>이름<input data-k="name" required value="${data.name||''}"></label><label>기술 스택 · 숙련도<input data-k="skills" required placeholder="Unity:4, UI:3" value="${data.skills||''}"></label><label>주당 가용 시간<input data-k="hours" type="number" min="1" max="80" required value="${data.hours||10}"></label><label>선호 역할<input data-k="preferred" placeholder="Gameplay Programmer" value="${data.preferred||''}"></label><label>기피 역할<input data-k="avoid" placeholder="UI" value="${data.avoid||''}"></label><label>학습 관심 분야<input data-k="learning" placeholder="Enemy AI" value="${data.learning||''}"></label><label>게임 개발 경험<input data-k="experience" placeholder="Unity 2D 프로젝트 1회" value="${data.experience||''}"></label><label>관련 프로젝트<input data-k="projects" placeholder="게임잼 액션 게임" value="${data.projects||''}"></label></div>`;
+  el.innerHTML='<h3>TEAM MEMBER</h3><button class="remove" type="button" aria-label="팀원 삭제">삭제</button><div class="grid three"><label>이름<input data-k="name" required></label><label>기술 스택 · 숙련도<input data-k="skills" required placeholder="Unity:4, UI:3"></label><label>주당 가용 시간<input data-k="hours" type="number" min="1" max="80" required></label><label>선호 역할<input data-k="preferred" placeholder="Gameplay Programmer"></label><label>기피 역할<input data-k="avoid" placeholder="UI"></label><label>학습 관심 분야<input data-k="learning" placeholder="Enemy AI"></label><label>게임 개발 경험<input data-k="experience" placeholder="Unity 2D 프로젝트 1회"></label><label>관련 프로젝트<input data-k="projects" placeholder="게임잼 액션 게임"></label></div>';
+  Object.entries(values).forEach(([key,value])=>{el.querySelector(`[data-k="${key}"]`).value=value});
   el.querySelector('.remove').onclick=()=>membersEl.children.length>2?el.remove():showError('팀원은 최소 2명이어야 합니다.');
   membersEl.append(el);
 }
