@@ -13,7 +13,7 @@ class WebUITests(unittest.TestCase):
         self.assertIn('href="/ui.css"', html)
         self.assertIn('class="planning-progress"', html)
         self.assertIn('class="result-heading"', html)
-        self.assertIn("[hidden]{display:none!important}", css)
+        self.assertRegex(css, r"\[hidden\]\s*\{\s*display:\s*none\s*!important;\s*\}")
 
 
 if __name__ == "__main__":
