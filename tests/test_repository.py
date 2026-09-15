@@ -21,12 +21,16 @@ class FakeCursor:
             return {"count": 0}
         if "MAX(version)" in self.query:
             return {"version": 1}
+        if "FROM project_retrospectives" in self.query:
+            return self.connector.retrospective
         return self.connector.detail
 
     def fetchall(self):
         if "FROM project_retrospectives" in self.query:
             return [{"plan_id": 7, "project_name": "이전 게임", "genre": "Roguelike", "engine": "Unity", "satisfaction": 4, "core_loop_achieved": 1, "summary": "전투 범위를 줄여 완성", "went_well": "", "problems": "", "recommendations": "", "text_score": 1.0}]
         if "FROM task_outcomes" in self.query:
+            if "WHERE plan_id" in self.query:
+                return [{"task_id": "task_01", "actual_hours": 15, "completed": 1, "rework_hours": 2, "blockers": '["asset"]', "playtest_issues": 1}]
             return [
                 {"genre": "Roguelike", "engine": "Unity", "task_name": "Combat", "estimated_hours": 10, "actual_hours": 15},
                 {"genre": "Roguelike", "engine": "Unity", "task_name": "Combat", "estimated_hours": 10, "actual_hours": 20},
@@ -58,7 +62,8 @@ class FakeConnection:
 class FakeConnector:
     def __init__(self):
         self.queries, self.commits, self.rollbacks = [], 0, 0
-        self.detail = {"id": 7, "project_key": "project-1", "project_name": "테스트", "version": 1, "status": "draft", "input_json": '{"project":{"name":"테스트"}}', "result_json": '{"tasks":[]}', "revision_request": "", "created_at": datetime(2026, 1, 1)}
+        self.detail = {"id": 7, "project_key": "project-1", "project_name": "테스트", "version": 1, "status": "draft", "input_json": '{"project":{"name":"테스트"}}', "result_json": '{"tasks":[],"validation":{"valid":true}}', "revision_request": "", "created_at": datetime(2026, 1, 1)}
+        self.retrospective = {"satisfaction": 4, "core_loop_achieved": 1, "summary": "완료", "went_well": "", "problems": "", "recommendations": ""}
 
     def connect(self, **config):
         self.config = config
@@ -89,6 +94,7 @@ class RepositoryTests(unittest.TestCase):
 
     def test_outcomes_produce_median_calibration(self):
         connector = FakeConnector()
+        connector.detail["status"] = "confirmed"
         connector.detail["input_json"] = '{"project":{"name":"테스트","genre":"Roguelike","engine":"Unity"}}'
         connector.detail["result_json"] = '{"tasks":[{"id":"task_01","name":"Combat","estimated_hours":10}]}'
         repository = ProjectRepository({"database": "gameweaver"}, connector)
@@ -97,6 +103,21 @@ class RepositoryTests(unittest.TestCase):
         self.assertEqual(1, saved)
         self.assertEqual(1.5, calibration["effort_factor"])
         self.assertEqual(3, calibration["sample_count"])
+
+    def test_invalid_plan_cannot_be_confirmed(self):
+        connector = FakeConnector()
+        connector.detail["result_json"] = '{"validation":{"valid":false}}'
+        repository = ProjectRepository({"database": "gameweaver"}, connector)
+        with self.assertRaisesRegex(ValueError, "검증을 통과"):
+            repository.confirm(7)
+
+    def test_feedback_round_trip_is_returned(self):
+        connector = FakeConnector()
+        repository = ProjectRepository({"database": "gameweaver"}, connector)
+        feedback = repository.feedback(7)
+        self.assertEqual(15.0, feedback["outcomes"][0]["actual_hours"])
+        self.assertEqual(["asset"], feedback["outcomes"][0]["blockers"])
+        self.assertEqual("완료", feedback["retrospective"]["summary"])
 
     def test_completed_retrospective_is_searchable(self):
         connector = FakeConnector()

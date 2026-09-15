@@ -93,7 +93,17 @@ class ProjectRepository:
         return [_serialize_dates(row) for row in rows]
 
     def confirm(self, plan_id, user_id=None):
-        with self._db() as (_, cursor):
+        with self._db(dictionary=True) as (_, cursor):
+            cursor.execute("SELECT status,result_json FROM plans WHERE id=%s AND owner_user_id=%s FOR UPDATE", (plan_id, user_id))
+            plan = cursor.fetchone()
+            if not plan:
+                return False
+            if not json.loads(plan["result_json"]).get("validation", {}).get("valid"):
+                raise ValueError("검증을 통과한 계획만 확정할 수 있습니다.")
+            if plan["status"] == "completed":
+                raise ValueError("완료된 계획은 다시 확정할 수 없습니다.")
+            if plan["status"] == "confirmed":
+                return True
             cursor.execute("UPDATE plans SET status='confirmed' WHERE id=%s AND owner_user_id=%s", (plan_id, user_id))
             return cursor.rowcount > 0
 
@@ -108,6 +118,8 @@ class ProjectRepository:
         plan = self.get(plan_id, user_id)
         if not plan:
             raise ValueError("계획을 찾을 수 없습니다.")
+        if plan["status"] not in ("confirmed", "completed"):
+            raise ValueError("확정된 계획에만 실측 데이터를 저장할 수 있습니다.")
         tasks = {task["id"]: task for task in plan["result"]["tasks"]}
         project = plan["input"]["project"]
         with self._db() as (_, cursor):
@@ -131,7 +143,7 @@ class ProjectRepository:
         with self._db(dictionary=True) as (_, cursor):
             cursor.execute("""SELECT o.genre,o.engine,o.task_name,o.estimated_hours,o.actual_hours
                 FROM task_outcomes o JOIN plans p ON p.id=o.plan_id
-                WHERE o.completed=TRUE AND o.actual_hours>0 AND o.estimated_hours>0 AND p.status='confirmed' AND p.owner_user_id=%s""", (user_id,))
+                WHERE o.completed=TRUE AND o.actual_hours>0 AND o.estimated_hours>0 AND p.status IN ('confirmed','completed') AND p.owner_user_id=%s""", (user_id,))
             rows = cursor.fetchall()
         groups = defaultdict(list)
         for row in rows:
@@ -168,6 +180,20 @@ class ProjectRepository:
                 (terms, user_id, project.get("genre"), project.get("engine"), terms, project.get("genre"), project.get("engine"), limit))
             rows = cursor.fetchall()
         return [_serialize_dates(row) for row in rows]
+
+    def feedback(self, plan_id, user_id=None):
+        if not self.get(plan_id, user_id):
+            return None
+        with self._db(dictionary=True) as (_, cursor):
+            cursor.execute("SELECT task_id,actual_hours,completed,rework_hours,blockers,playtest_issues FROM task_outcomes WHERE plan_id=%s ORDER BY id", (plan_id,))
+            outcomes = cursor.fetchall()
+            cursor.execute("SELECT satisfaction,core_loop_achieved,summary,went_well,problems,recommendations FROM project_retrospectives WHERE plan_id=%s", (plan_id,))
+            retrospective = cursor.fetchone()
+        for outcome in outcomes:
+            outcome["actual_hours"] = float(outcome["actual_hours"])
+            outcome["rework_hours"] = float(outcome["rework_hours"])
+            outcome["blockers"] = json.loads(outcome["blockers"]) if isinstance(outcome["blockers"], str) else outcome["blockers"]
+        return {"outcomes": outcomes, "retrospective": retrospective}
 
     @contextmanager
     def _db(self, dictionary=False):

@@ -79,6 +79,12 @@ class Handler(SimpleHTTPRequestHandler):
             return self._json(200, {"projects": REPOSITORY.list(user_id=user["id"])})
         if path == "/api/calibrations":
             return self._json(200, {"calibrations": REPOSITORY.calibrations(user_id=user["id"])})
+        if path.startswith("/api/plans/") and path.endswith("/feedback"):
+            try:
+                feedback = REPOSITORY.feedback(int(path.split("/")[3]), user["id"])
+            except ValueError:
+                feedback = None
+            return self._json(200, feedback) if feedback is not None else self._json(404, {"error": "계획을 찾을 수 없습니다."})
         if path.startswith("/api/plans/"):
             try:
                 plan = REPOSITORY.get(int(path.rsplit("/", 1)[1]), user["id"])
