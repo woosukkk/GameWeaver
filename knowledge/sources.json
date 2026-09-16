@@ -25,6 +25,12 @@
       "scope": "released game platform features",
       "url": "https://partner.steamgames.com/doc/webapi_overview",
       "use": "platform feature metadata where access permits"
+    },
+    {
+      "scope": "game development project-management failures",
+      "url": "https://doi.org/10.5281/zenodo.5828315",
+      "use": "retrieval evidence for planning, scope and team risks",
+      "license": "CC BY 4.0"
     }
   ]
 }
