@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from gameweaver import create_plan
+from gameweaver.rag import retrieve
 from tests.test_planner import SAMPLE
 
 
@@ -47,6 +48,15 @@ class AIPlanningTests(unittest.TestCase):
         result = create_plan({**SAMPLE, "project": {**SAMPLE["project"], "use_ai": True}}, agent=agent, similar_cases=[case])
         self.assertEqual("과거 게임", agent.similar_cases[0]["project_name"])
         self.assertEqual(3, result["case_references"][0]["plan_id"])
+
+    def test_rag_retrieves_attributed_evidence_for_agent_harness(self):
+        evidence = retrieve({**SAMPLE["project"], "duration_weeks": 4}, limit=3)
+        self.assertEqual(3, len(evidence))
+        self.assertTrue(all(item["citation"].endswith("5828315") for item in evidence))
+
+        agent = FakeAgent()
+        result = create_plan({**SAMPLE, "project": {**SAMPLE["project"], "use_ai": True}}, agent=agent)
+        self.assertTrue(result["harness"]["retrieved_knowledge"])
 
 
 if __name__ == "__main__":

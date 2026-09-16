@@ -8,6 +8,7 @@ from collections import defaultdict
 
 from .ai import AIError, PlanningAgent
 from .catalog import common, engine, genre
+from .rag import retrieve
 
 
 def _require(data, key, kind):
@@ -69,7 +70,7 @@ def build_harness(project):
     tools = list(common_data["tools"])
     if weeks > 6:
         tools.append("check_role_balance")
-    return {"contexts": list(dict.fromkeys(contexts)), "rules": rules, "tools": tools, "workflow": genre_data["workflow"], "role_candidates": genre_data["roles"], "validation_conditions": common_data["validation_conditions"], "permissions": ["read_project_input", "use_registered_tools", "propose_assignments"]}
+    return {"contexts": list(dict.fromkeys(contexts)), "rules": rules, "tools": tools, "workflow": genre_data["workflow"], "role_candidates": genre_data["roles"], "validation_conditions": common_data["validation_conditions"], "permissions": ["read_project_input", "use_registered_tools", "propose_assignments"], "retrieved_knowledge": retrieve(project) if project["use_ai"] else []}
 
 
 def _tasks(project):
