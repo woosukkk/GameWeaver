@@ -77,7 +77,7 @@ GameWeaver는 단순히 LLM에 팀원 정보를 넣고 역할을 추천받는 �
 
 ## GameWeaver가 보유해야 할 도메인 컨텍스트
 
-사용자가 매번 설명할 필요가 없는 게임 개발 지식은 GameWeaver 내부 데이터로 관리한다. 초기에는 JSON/YAML 같은 정적 파일로 충분하며, 데이터 규모와 검색 필요성이 확인되기 전에는 Vector DB나 RAG를 도입하지 않는다.
+사용자가 매번 설명할 필요가 없는 게임 개발 지식은 GameWeaver 내부 데이터로 관리한다. 정적 JSON 지식과 출처가 명확한 공개 데이터셋을 로컬 검색해 Planning Agent에 전달한다. 현재 규모에서는 별도 Vector DB 없이 검색하며, 비정형 문서가 수천 건 이상 쌓이고 검색 누락이 측정될 때 임베딩 검색으로 전환한다.
 
 ### 공통 개발 단계
 
@@ -293,6 +293,7 @@ AI 계획을 사용하려면 `.env`에 `OPENAI_API_KEY`를 설정합니다. 모�
 
 - 완료: 확장된 프로젝트·팀원 Form, 외부 지식 기반 Harness, AI 태스크·핵심 루프 생성, 스킬 매칭, 배정, 작업량·일정 계산, 수정 요청, 결과 UI
 - Planning Agent: OpenAI Responses API의 strict Structured Outputs 사용, Validator 오류를 전달해 최대 2회 자동 Retry
+- RAG: 프로젝트 조건으로 게임 개발 포스트모템 440건을 검색하고 출처가 포함된 상위 근거를 Harness에 결합
 - 전용 데이터 보유: Roguelike, Visual Novel, RPG, Puzzle, Platformer, Simulation, Action
 - 엔진 데이터 보유: Unity, Unreal Engine, Godot
 - 저장: 프로젝트 입력, 생성 결과와 수정 이력을 MySQL에 저장하고 최근 계획 조회

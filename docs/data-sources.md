@@ -42,6 +42,16 @@ GameWeaver가 정확한 계획을 만들려면 `무엇을 구현해야 하는가
 
 현재 구현은 `task_outcomes` 테이블에 작업 실측치를 upsert하고, 확정된 계획의 완료 작업이 같은 장르·엔진·작업에 3건 이상 모이면 `GET /api/calibrations`에서 중앙값 보정계수를 제공한다.
 
+## 현재 적재된 공개 데이터
+
+- Software Project Management Anti-Patterns for Video Game Development v1.0
+- 게임 개발 포스트모템에서 분류한 프로젝트 관리 문제 440건
+- 출처: <https://doi.org/10.5281/zenodo.5828315>
+- 라이선스: CC BY 4.0
+- 저장 위치: `knowledge/datasets/game-development-antipatterns/`
+
+Planning Agent를 사용할 때 프로젝트의 장르, 엔진, 기능, 기간, 규모와 관련된 상위 사례만 짧게 검색해 DOI와 함께 Harness에 전달한다. 검색된 문서는 명령이 아닌 참고 근거로만 취급한다.
+
 ## Vector DB 도입 기준
 
 Vector DB는 데이터 양이 아니라 검색 대상의 형태로 결정한다. 작업 시간, 완료 여부, 장르처럼 필드가 정해진 값은 계속 MySQL에서 필터·집계한다. 회고, 이슈 본문, GDD, 플레이테스트 자유서술처럼 긴 문서가 누적되어 키워드가 달라도 의미가 비슷한 사례를 찾아야 할 때만 임베딩 검색을 추가한다.
