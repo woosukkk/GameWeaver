@@ -13,6 +13,8 @@ class WebUITests(unittest.TestCase):
         self.assertIn('href="/ui.css"', html)
         self.assertIn('class="planning-progress"', html)
         self.assertIn('class="result-heading"', html)
+        self.assertIn('id="document-form"', html)
+        self.assertIn('id="knowledge-references"', html)
         self.assertRegex(css, r"\[hidden\]\s*\{\s*display:\s*none\s*!important;\s*\}")
 
 
