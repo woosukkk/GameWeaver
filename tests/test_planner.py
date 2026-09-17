@@ -21,6 +21,14 @@ class PlannerTests(unittest.TestCase):
         self.assertTrue(plan["validation"]["valid"])
         self.assertIn("Boss Battle", {task["name"] for task in plan["tasks"]})
 
+    def test_assignment_keeps_feasible_dependency_schedule_within_deadline(self):
+        payload = {**SAMPLE, "project": {**SAMPLE["project"], "mandatory_features": ["Boss Battle", "Meta Progression"]}}
+
+        plan = create_plan(payload)
+
+        self.assertTrue(plan["validation"]["valid"], plan["validation"]["errors"])
+        self.assertLessEqual(max(item["end_week"] for item in plan["schedule"]), 4)
+
     def test_refinement_can_avoid_named_assignment(self):
         result = refine_plan({"input": SAMPLE, "request": "민수는 Enemy AI를 맡지 않게 해줘"})
         task = next(task for task in result["tasks"] if task["name"] == "Enemy AI")

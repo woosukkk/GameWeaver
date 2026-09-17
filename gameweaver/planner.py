@@ -146,9 +146,12 @@ def _constraints(request, members, tasks):
 def _assign(tasks, members, weeks, constraints):
     capacity = {member["id"]: member["available_hours_per_week"] * weeks for member in members}
     assigned = defaultdict(float)
+    member_end = defaultdict(float)
+    task_end = {}
     assignments = []
     for task in tasks:
         ranked = []
+        dependency_end = max((task_end.get(task_id, 0) for task_id in task["dependencies"]), default=0)
         for member in members:
             remaining = capacity[member["id"]] - assigned[member["id"]]
             score = _score(task, member, remaining, constraints)
@@ -157,9 +160,12 @@ def _assign(tasks, members, weeks, constraints):
                 score = min(100, score + 30)
             load_ratio = assigned[member["id"]] / capacity[member["id"]]
             rank = score - load_ratio * (30 if constraints["balance"] else 12)
-            ranked.append((allowed, remaining >= task["estimated_hours"], rank, score, member))
-        _, fits, _, score, chosen = max(ranked, key=lambda item: (item[0], item[1], item[2]))
+            end = max(member_end[member["id"]], dependency_end) + task["estimated_hours"] / member["available_hours_per_week"]
+            ranked.append((allowed, remaining >= task["estimated_hours"], end <= weeks, rank, -end, score, member))
+        _, fits, _, _, neg_end, score, chosen = max(ranked, key=lambda item: item[:5])
         assigned[chosen["id"]] += task["estimated_hours"]
+        member_end[chosen["id"]] = -neg_end
+        task_end[task["id"]] = -neg_end
         strongest = max(task["required_skills"], key=lambda skill: chosen["skills"].get(skill, 0))
         reason = f"{strongest} 숙련도 {chosen['skills'].get(strongest, 0)}/5, 일정 {'적합' if fits else '초과(대체 인력 부족)'}"
         assignments.append({"task_id": task["id"], "member_id": chosen["id"], "match_score": score, "reason": reason})
