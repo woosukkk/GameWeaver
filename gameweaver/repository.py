@@ -235,6 +235,20 @@ class ProjectRepository:
             rows = cursor.fetchall()
         return [{**row, "source_id": f"document-{row['id']}", "citation": row["source_url"] or f"gameweaver://documents/{row['id']}"} for row in rows]
 
+    def list_documents(self, project_key, user_id=None):
+        with self._db(dictionary=True) as (_, cursor):
+            cursor.execute("""SELECT d.id,d.document_type,d.title,d.source_url,d.created_at
+                FROM knowledge_documents d JOIN project_members pm ON pm.project_key=d.project_key
+                WHERE d.project_key=%s AND pm.user_id=%s ORDER BY d.id DESC""", (project_key, user_id))
+            rows = cursor.fetchall()
+        return [_serialize_dates(row) for row in rows]
+
+    def delete_document(self, document_id, user_id=None):
+        with self._db() as (_, cursor):
+            cursor.execute("""DELETE d FROM knowledge_documents d JOIN project_members pm ON pm.project_key=d.project_key
+                WHERE d.id=%s AND pm.user_id=%s AND pm.role IN ('owner','editor')""", (document_id, user_id))
+            return cursor.rowcount > 0
+
     def feedback(self, plan_id, user_id=None):
         if not self.get(plan_id, user_id):
             return None

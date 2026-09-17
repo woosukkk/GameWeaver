@@ -163,6 +163,8 @@ class RepositoryTests(unittest.TestCase):
         self.assertEqual(7, document_id)
         self.assertEqual("document-9", documents[0]["source_id"])
         self.assertTrue(any("INSERT INTO knowledge_documents" in query for query, _ in connector.queries))
+        self.assertEqual(9, repository.list_documents("project-1", 1)[0]["id"])
+        self.assertTrue(repository.delete_document(9, 1))
 
     def test_mysql_config_requires_credentials(self):
         with patch.dict("os.environ", {}, clear=True), self.assertRaisesRegex(RuntimeError, "MYSQL_USER"):

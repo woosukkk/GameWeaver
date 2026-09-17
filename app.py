@@ -8,7 +8,7 @@ import time
 from http.cookies import SimpleCookie
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from gameweaver import create_plan, refine_plan
 from gameweaver.config import load_env
@@ -108,6 +108,9 @@ class Handler(SimpleHTTPRequestHandler):
             return self._json(200, {"projects": REPOSITORY.list(user_id=user["id"])})
         if path == "/api/calibrations":
             return self._json(200, {"calibrations": REPOSITORY.calibrations(user_id=user["id"])})
+        if path == "/api/documents":
+            project_key = parse_qs(urlparse(self.path).query).get("project_key", [""])[0]
+            return self._json(200, {"documents": REPOSITORY.list_documents(project_key, user["id"])})
         if path.startswith("/api/plans/") and path.endswith("/feedback"):
             try:
                 feedback = REPOSITORY.feedback(int(path.split("/")[3]), user["id"])
@@ -217,6 +220,12 @@ class Handler(SimpleHTTPRequestHandler):
         if path.startswith("/api/projects/") and "/" not in path.removeprefix("/api/projects/"):
             deleted = REPOSITORY.delete_project(path.rsplit("/", 1)[1], user["id"])
             return self._json(200, {"deleted_plans": deleted}) if deleted else self._json(404, {"error": "프로젝트를 찾을 수 없습니다."})
+        if path.startswith("/api/documents/"):
+            try:
+                deleted = REPOSITORY.delete_document(int(path.rsplit("/", 1)[1]), user["id"])
+            except ValueError:
+                deleted = False
+            return self._json(200, {"deleted": True}) if deleted else self._json(404, {"error": "문서를 찾을 수 없습니다."})
         return self._json(404, {"error": "API를 찾을 수 없습니다."})
 
 
