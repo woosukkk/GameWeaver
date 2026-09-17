@@ -254,7 +254,7 @@ def _validate_result(result):
     result["validation"]["errors"].append("최종 결과 구조가 올바르지 않습니다.")
 
 
-def create_plan(payload, revision_request="", agent=None, effort_factors=None, similar_cases=None):
+def create_plan(payload, revision_request="", agent=None, effort_factors=None, similar_cases=None, knowledge_documents=None):
     data = _normalize(payload)
     project, members = data["project"], data["members"]
     harness = build_harness(project)
@@ -266,7 +266,7 @@ def create_plan(payload, revision_request="", agent=None, effort_factors=None, s
     for attempt in range(retries + 1 if agent else 1):
         try:
             if agent:
-                generated = agent.plan(project, members, harness, revision_request, [] if attempt == 0 else validation["errors"], similar_cases)
+                generated = agent.plan(project, members, harness, revision_request, [] if attempt == 0 else validation["errors"], similar_cases, knowledge_documents)
                 tasks = _agent_tasks(generated["tasks"], project)
             else:
                 tasks = _tasks(project)
@@ -295,9 +295,9 @@ def create_plan(payload, revision_request="", agent=None, effort_factors=None, s
     return result
 
 
-def refine_plan(payload, agent=None, effort_factors=None, similar_cases=None):
+def refine_plan(payload, agent=None, effort_factors=None, similar_cases=None, knowledge_documents=None):
     original = _require(payload, "input", dict)
     request = _require(payload, "request", str)
     if len(request) > 500:
         raise ValueError("수정 요청은 500자 이하여야 합니다.")
-    return create_plan(original, request, agent, effort_factors, similar_cases)
+    return create_plan(original, request, agent, effort_factors, similar_cases, knowledge_documents)

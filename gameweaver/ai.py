@@ -59,14 +59,15 @@ class PlanningAgent:
         key = os.getenv("OPENAI_API_KEY", "").strip()
         return cls(key) if key else None
 
-    def plan(self, project, members, harness, revision_request="", validation_errors=None, similar_cases=None):
+    def plan(self, project, members, harness, revision_request="", validation_errors=None, similar_cases=None, knowledge_documents=None):
         context = {
             "project": project,
             "team": members,
             "harness": harness,
             "revision_request": revision_request,
             "previous_validation_errors": validation_errors or [],
-            "similar_completed_projects": similar_cases or []
+            "similar_completed_projects": similar_cases or [],
+            "project_documents": knowledge_documents or []
         }
         instructions = (
             "You are the single GameWeaver planning agent. Create an executable game-development task plan in Korean. "

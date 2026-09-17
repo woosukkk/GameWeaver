@@ -127,6 +127,7 @@ class ProjectRepository:
                 return 0
             cursor.execute("DELETE o FROM task_outcomes o JOIN plans p ON p.id=o.plan_id WHERE p.project_key=%s", (project_key,))
             cursor.execute("DELETE FROM project_retrospectives WHERE project_key=%s", (project_key,))
+            cursor.execute("DELETE FROM knowledge_documents WHERE project_key=%s", (project_key,))
             cursor.execute("DELETE FROM plans WHERE project_key=%s", (project_key,))
             deleted = cursor.rowcount
             cursor.execute("DELETE FROM project_invitations WHERE project_key=%s", (project_key,))
@@ -204,6 +205,35 @@ class ProjectRepository:
                 (terms, user_id, project.get("genre"), project.get("engine"), terms, project.get("genre"), project.get("engine"), limit))
             rows = cursor.fetchall()
         return [_serialize_dates(row) for row in rows]
+
+    def save_document(self, data, user_id=None):
+        project_key = str(data.get("project_key", "")).strip()
+        kind = str(data.get("document_type", "")).strip()
+        title = str(data.get("title", "")).strip()
+        content = str(data.get("content", "")).strip()
+        source_url = str(data.get("source_url", "")).strip()
+        if not self.can_edit(project_key, user_id):
+            raise ValueError("문서를 추가할 수 있는 프로젝트가 아닙니다.")
+        if kind not in ("gdd", "playtest") or not title or not content:
+            raise ValueError("문서 유형, 제목과 내용이 필요합니다.")
+        if len(title) > 255 or len(content) > 100_000 or len(source_url) > 1000:
+            raise ValueError("문서 크기가 허용 범위를 초과했습니다.")
+        with self._db() as (_, cursor):
+            cursor.execute("INSERT INTO knowledge_documents(project_key,document_type,title,source_url,content,created_by) VALUES(%s,%s,%s,%s,%s,%s)", (project_key, kind, title, source_url, content, user_id))
+            return cursor.lastrowid
+
+    def search_documents(self, project, limit=4, user_id=None):
+        terms = " ".join([project.get("name", ""), project.get("genre", ""), project.get("engine", ""), project.get("description", ""), *project.get("mandatory_features", [])]).strip()
+        project_key = project.get("id", "")
+        with self._db(dictionary=True) as (_, cursor):
+            cursor.execute("""SELECT d.id,d.document_type,d.title,d.source_url,LEFT(d.content,800) AS excerpt,
+                MATCH(d.title,d.content) AGAINST (%s IN NATURAL LANGUAGE MODE) AS text_score
+                FROM knowledge_documents d JOIN project_members pm ON pm.project_key=d.project_key
+                WHERE pm.user_id=%s AND (d.project_key=%s OR MATCH(d.title,d.content) AGAINST (%s IN NATURAL LANGUAGE MODE))
+                ORDER BY (d.project_key=%s) DESC,text_score DESC,d.created_at DESC LIMIT %s""",
+                (terms, user_id, project_key, terms, project_key, limit))
+            rows = cursor.fetchall()
+        return [{**row, "source_id": f"document-{row['id']}", "citation": row["source_url"] or f"gameweaver://documents/{row['id']}"} for row in rows]
 
     def feedback(self, plan_id, user_id=None):
         if not self.get(plan_id, user_id):

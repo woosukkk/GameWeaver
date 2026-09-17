@@ -46,6 +46,8 @@ class FakeCursor:
                 {"genre": "Roguelike", "engine": "Unity", "task_name": "Combat", "estimated_hours": 10, "actual_hours": 20},
                 {"genre": "Roguelike", "engine": "Unity", "task_name": "Combat", "estimated_hours": 10, "actual_hours": 10},
             ]
+        if "FROM knowledge_documents" in self.query:
+            return [{"id": 9, "document_type": "gdd", "title": "전투 기획", "source_url": "", "excerpt": "보스 전투", "text_score": 1.0}]
         return [{"id": 7, "project_name": "테스트", "revision_request": "균등하게", "created_at": datetime(2026, 1, 1)}]
 
     def close(self):
@@ -152,6 +154,15 @@ class RepositoryTests(unittest.TestCase):
         cases = repository.similar_cases({"name": "새 게임", "genre": "Roguelike", "engine": "Unity", "mandatory_features": ["Combat"]})
         self.assertEqual("이전 게임", cases[0]["project_name"])
         self.assertTrue(any("MATCH(summary" in query for query, _ in connector.queries))
+
+    def test_project_documents_are_saved_and_searchable(self):
+        connector = FakeConnector()
+        repository = ProjectRepository({"database": "gameweaver"}, connector)
+        document_id = repository.save_document({"project_key": "project-1", "document_type": "gdd", "title": "전투 기획", "content": "보스 전투 단계"}, 1)
+        documents = repository.search_documents({"id": "project-1", "name": "테스트", "genre": "Roguelike", "engine": "Unity"}, user_id=1)
+        self.assertEqual(7, document_id)
+        self.assertEqual("document-9", documents[0]["source_id"])
+        self.assertTrue(any("INSERT INTO knowledge_documents" in query for query, _ in connector.queries))
 
     def test_mysql_config_requires_credentials(self):
         with patch.dict("os.environ", {}, clear=True), self.assertRaisesRegex(RuntimeError, "MYSQL_USER"):

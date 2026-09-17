@@ -163,7 +163,7 @@ class Handler(SimpleHTTPRequestHandler):
                 expired = "gameweaver_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0"
                 return self._json(200, {"logged_out": True}, [expired, self._csrf_cookie(clear=True)])
             if self.path == "/api/plan":
-                result = create_plan(payload, effort_factors=effort_factors(payload, user["id"]), similar_cases=REPOSITORY.similar_cases(payload["project"], user_id=user["id"]))
+                result = create_plan(payload, effort_factors=effort_factors(payload, user["id"]), similar_cases=REPOSITORY.similar_cases(payload["project"], user_id=user["id"]), knowledge_documents=REPOSITORY.search_documents(payload["project"], user_id=user["id"]))
                 result.update(REPOSITORY.save(payload, result, user_id=user["id"]))
                 return self._json(200, result)
             if self.path == "/api/invitations/accept":
@@ -173,7 +173,7 @@ class Handler(SimpleHTTPRequestHandler):
                 token = REPOSITORY.invite(project_key, payload.get("email"), payload.get("role", "editor"), user["id"])
                 return self._json(200, {"invitation_token": token, "expires_in_days": 7})
             if self.path == "/api/refine":
-                result = refine_plan(payload, effort_factors=effort_factors(payload["input"], user["id"]), similar_cases=REPOSITORY.similar_cases(payload["input"]["project"], user_id=user["id"]))
+                result = refine_plan(payload, effort_factors=effort_factors(payload["input"], user["id"]), similar_cases=REPOSITORY.similar_cases(payload["input"]["project"], user_id=user["id"]), knowledge_documents=REPOSITORY.search_documents(payload["input"]["project"], user_id=user["id"]))
                 result.update(REPOSITORY.save(payload["input"], result, payload.get("parent_plan_id"), user["id"]))
                 return self._json(200, result)
             if self.path.startswith("/api/plans/") and self.path.endswith("/confirm"):
@@ -198,6 +198,8 @@ class Handler(SimpleHTTPRequestHandler):
                     return self._json(400, {"error": "계획 ID가 올바르지 않습니다."})
                 REPOSITORY.save_retrospective(plan_id, payload, user["id"])
                 return self._json(200, {"completed": True})
+            if self.path == "/api/documents":
+                return self._json(200, {"document_id": REPOSITORY.save_document(payload, user["id"])})
             return self._json(404, {"error": "API를 찾을 수 없습니다."})
         except (ValueError, TypeError, json.JSONDecodeError) as exc:
             return self._json(400, {"error": str(exc)})
