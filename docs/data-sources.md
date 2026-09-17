@@ -54,6 +54,8 @@ Planning Agent를 사용할 때 프로젝트의 장르, 엔진, 기능, 기간, 
 
 추가로 공식 엔진·플랫폼 문서에서 작성한 출처 포함 요약, 장르별 시스템, OpenRA·OpenTTD·SuperTuxKart 공개 이슈 메타데이터를 `knowledge/documents/`에 보관한다. 검색 결과는 엔진, 장르, 플랫폼, 실제 이슈가 한 종류에 편중되지 않도록 유형별 근거를 우선 선택한다.
 
+공개 이슈 메타데이터는 `python scripts/refresh_github_issues.py`로 갱신한다. 이 스크립트는 이슈 본문을 복제하지 않고 제목, 라벨, 상태와 원문 링크만 저장한다.
+
 사용자 GDD와 플레이테스트 기록은 `POST /api/documents`로 `knowledge_documents`에 저장한다. 문서는 프로젝트 멤버에게만 검색되며 Planning Agent의 `project_documents` 컨텍스트로 전달된다. 현재 DB에는 실제 완료 프로젝트 결과가 없으므로 샘플 실측값을 운영 데이터로 삽입하지 않는다.
 
 ## Vector DB 도입 기준

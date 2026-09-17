@@ -269,6 +269,7 @@ python app.py
 - 테스트: `python -m unittest discover -s tests -v`
 - 문법 검사: `python -m compileall app.py gameweaver tests`
 - 설치: `python -m pip install -r requirements.txt`
+- 공개 이슈 메타데이터 갱신: `python scripts/refresh_github_issues.py`
 - 데이터베이스: MySQL 8.x 및 Connector/Python 9.7.0
 
 AI 계획을 사용하려면 `.env`에 `OPENAI_API_KEY`를 설정합니다. 모델은 기본적으로 `gpt-5.6-terra`이며 `OPENAI_MODEL`로 바꿀 수 있습니다. 키가 없거나 API 호출이 실패하면 규칙 기반 계획으로 자동 전환합니다. 구현은 OpenAI [Responses API](https://developers.openai.com/api/reference/cli/resources/responses/methods/create)와 strict JSON Schema Structured Outputs를 사용하며 API 응답 저장은 끕니다.
