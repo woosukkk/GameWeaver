@@ -8,7 +8,7 @@ from collections import defaultdict
 
 from .ai import AIError, PlanningAgent
 from .catalog import common, engine, genre
-from .rag import retrieve
+from .rag import link_evidence, retrieve
 
 
 def _require(data, key, kind):
@@ -296,7 +296,9 @@ def create_plan(payload, revision_request="", agent=None, effort_factors=None, s
             validation = _validate(tasks, assignments, workload, members, project, schedule)
             break
     analysis_summary = generated.get("summary") if generated else project.get("description", "")
-    result = {"project_analysis": {"name": project["name"], "genre": project["genre"], "engine": project["engine"], "dimension": project["dimension"], "platform": project["platform"], "content_scale": project["content_scale"], "development_priority": project["goal"], "team_size": len(members), "summary": analysis_summary, "core_loop": generated.get("core_loop", []) if generated else []}, "harness": harness, "tasks": tasks, "assignments": assignments, "member_workload": workload, "schedule": schedule, "validation": validation, "revision_request": revision_request, "case_references": [{"plan_id": case["plan_id"], "project_name": case["project_name"], "summary": case["summary"]} for case in (similar_cases or [])], "knowledge_references": [*harness["retrieved_knowledge"], *(knowledge_documents or [])], "ai": {"requested": project["use_ai"], "used": bool(generated), "model": configured_model, "fallback_reason": ai_error}}
+    knowledge_references = [*harness["retrieved_knowledge"], *(knowledge_documents or [])]
+    link_evidence(tasks, knowledge_references)
+    result = {"project_analysis": {"name": project["name"], "genre": project["genre"], "engine": project["engine"], "dimension": project["dimension"], "platform": project["platform"], "content_scale": project["content_scale"], "development_priority": project["goal"], "team_size": len(members), "summary": analysis_summary, "core_loop": generated.get("core_loop", []) if generated else []}, "harness": harness, "tasks": tasks, "assignments": assignments, "member_workload": workload, "schedule": schedule, "validation": validation, "revision_request": revision_request, "case_references": [{"plan_id": case["plan_id"], "project_name": case["project_name"], "summary": case["summary"]} for case in (similar_cases or [])], "knowledge_references": knowledge_references, "ai": {"requested": project["use_ai"], "used": bool(generated), "model": configured_model, "fallback_reason": ai_error}}
     _validate_result(result)
     return result
 

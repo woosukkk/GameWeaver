@@ -58,6 +58,9 @@ class AIPlanningTests(unittest.TestCase):
         agent = FakeAgent()
         result = create_plan({**SAMPLE, "project": {**SAMPLE["project"], "use_ai": True}}, agent=agent)
         self.assertTrue(result["harness"]["retrieved_knowledge"])
+        source_ids = {item["source_id"] for item in result["knowledge_references"]}
+        self.assertTrue(any(task["evidence_source_ids"] for task in result["tasks"]))
+        self.assertTrue(all(set(task["evidence_source_ids"]) <= source_ids for task in result["tasks"]))
 
     def test_rag_prefers_matching_engine_knowledge(self):
         evidence = retrieve({**SAMPLE["project"], "engine": "Godot"}, limit=4)

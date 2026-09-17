@@ -44,6 +44,20 @@ def retrieve(project, limit=4):
     return [row for _, _, row in selected]
 
 
+def link_evidence(tasks, evidence, limit=2):
+    for task in tasks:
+        query = _tokens(" ".join((task["name"], task["category"], *task["required_skills"])))
+        ranked = []
+        for index, item in enumerate(evidence):
+            text = " ".join(str(item.get(key, "")) for key in ("title", "topic", "excerpt", "lesson", "content"))
+            score = len(query & _tokens(text))
+            if score:
+                ranked.append((score, index, item["source_id"]))
+        ranked.sort(key=lambda item: (-item[0], item[1]))
+        task["evidence_source_ids"] = [source_id for _, _, source_id in ranked[:limit]]
+    return tasks
+
+
 def _project_terms(project):
     values = [project.get(key, "") for key in ("name", "genre", "engine", "platform", "description", "content_scale")]
     values += project.get("mandatory_features", []) + project.get("constraints", [])
