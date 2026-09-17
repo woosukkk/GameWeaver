@@ -280,6 +280,7 @@ AI 계획을 사용하려면 `.env`에 `OPENAI_API_KEY`를 설정합니다. 모�
 - `GET /api/projects/{id}`: 저장된 입력과 계획 조회
 - `POST /api/plan`: 프로젝트와 팀 정보를 분석해 계획 생성
 - `POST /api/refine`: 기존 계획에 수정 제약조건을 적용해 재배정
+- `POST /api/documents`: 프로젝트 GDD 또는 플레이테스트 문서 저장 (`project_key`, `document_type`, `title`, `content`, 선택 `source_url`)
 
 예제 요청은 `examples/project.json`에 있습니다.
 
@@ -293,7 +294,7 @@ AI 계획을 사용하려면 `.env`에 `OPENAI_API_KEY`를 설정합니다. 모�
 
 - 완료: 확장된 프로젝트·팀원 Form, 외부 지식 기반 Harness, AI 태스크·핵심 루프 생성, 스킬 매칭, 배정, 작업량·일정 계산, 수정 요청, 결과 UI
 - Planning Agent: OpenAI Responses API의 strict Structured Outputs 사용, Validator 오류를 전달해 최대 2회 자동 Retry
-- RAG: 프로젝트 조건으로 게임 개발 포스트모템 440건을 검색하고 출처가 포함된 상위 근거를 Harness에 결합
+- RAG: 포스트모템 440건과 엔진·장르·플랫폼·공개 이슈 지식을 검색하고, 사용자별 GDD·플레이테스트 문서와 함께 Planning Agent에 전달
 - 전용 데이터 보유: Roguelike, Visual Novel, RPG, Puzzle, Platformer, Simulation, Action
 - 엔진 데이터 보유: Unity, Unreal Engine, Godot
 - 저장: 프로젝트 입력, 생성 결과와 수정 이력을 MySQL에 저장하고 최근 계획 조회
