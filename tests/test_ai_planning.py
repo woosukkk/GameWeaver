@@ -13,7 +13,7 @@ class FakeAgent:
         self.calls = []
         self.similar_cases = None
 
-    def plan(self, project, members, harness, revision_request="", validation_errors=None, similar_cases=None):
+    def plan(self, project, members, harness, revision_request="", validation_errors=None, similar_cases=None, knowledge_documents=None):
         self.similar_cases = similar_cases
         self.calls.append(validation_errors)
         if len(self.calls) == 1:
@@ -52,11 +52,16 @@ class AIPlanningTests(unittest.TestCase):
     def test_rag_retrieves_attributed_evidence_for_agent_harness(self):
         evidence = retrieve({**SAMPLE["project"], "duration_weeks": 4}, limit=3)
         self.assertEqual(3, len(evidence))
-        self.assertTrue(all(item["citation"].endswith("5828315") for item in evidence))
+        self.assertTrue(all(item["citation"] for item in evidence))
+        self.assertTrue(any(item["citation"].endswith("5828315") for item in evidence))
 
         agent = FakeAgent()
         result = create_plan({**SAMPLE, "project": {**SAMPLE["project"], "use_ai": True}}, agent=agent)
         self.assertTrue(result["harness"]["retrieved_knowledge"])
+
+    def test_rag_prefers_matching_engine_knowledge(self):
+        evidence = retrieve({**SAMPLE["project"], "engine": "Godot"}, limit=4)
+        self.assertTrue(any(item["source_id"].startswith("godot-") for item in evidence))
 
 
 if __name__ == "__main__":
