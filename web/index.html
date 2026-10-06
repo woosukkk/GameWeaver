@@ -21,30 +21,38 @@
     <section class="saved" id="saved" hidden><div class="section-head"><span>↻</span><div><h2>최근 계획</h2><p>저장된 계획을 다시 열 수 있습니다.</p></div></div><div id="saved-list" class="saved-list"></div></section>
     <form id="planner-form">
       <section class="panel form-panel">
-        <div class="section-head"><span>01</span><div><h2>프로젝트 정의</h2><p>게임의 구조와 이번 개발의 경계를 알려주세요.</p></div></div>
-        <div class="grid three">
-          <label>프로젝트명<input name="name" value="Dungeon Loop" required maxlength="80"></label>
+        <div class="section-head"><span>01</span><div><h2>프로젝트 정의</h2><p>핵심 정보만 입력하면 나머지는 GameWeaver가 구성합니다.</p></div></div>
+        <p class="input-guide"><b>먼저 이것만 알려주세요.</b><span>프로젝트의 방향을 결정하는 6가지 항목입니다.</span></p>
+        <div class="grid project-core">
+          <label class="project-name">프로젝트명<input name="name" value="Dungeon Loop" required maxlength="80"></label>
           <label>장르<select name="genre"><option>Roguelike</option><option>RPG</option><option>Puzzle</option><option>Platformer</option><option>Visual Novel</option><option>Simulation</option><option>Action</option><option>기타</option></select></label>
           <label>게임 엔진<select name="engine"><option>Unity</option><option>Unreal Engine</option><option>Godot</option><option>기타</option></select></label>
           <label>차원<select name="dimension"><option>2D</option><option>3D</option></select></label>
-          <label>대상 플랫폼<select name="platform"><option>PC</option><option>Mobile</option><option>Web</option><option>Console</option></select></label>
           <label>개발 기간 (주)<input name="duration" type="number" min="1" max="52" value="4" required></label>
           <label>목표<select name="goal"><option>MVP</option><option>학습</option><option>포트폴리오</option><option>공모전</option><option>완성작</option></select></label>
-          <label>콘텐츠 규모<select name="contentScale"><option>소규모</option><option>중규모</option><option>대규모</option></select></label>
-          <label>참고 게임 <small>쉼표로 구분</small><input name="references" placeholder="Hades, Enter the Gungeon"></label>
-          <label>마감일<input name="deadline" type="date"></label>
         </div>
-        <label>필수 기능 <small>쉼표로 구분</small><input name="features" value="Boss Battle, Meta Progression"></label>
-        <div class="grid three">
-          <label>제외할 기능<input name="excluded" placeholder="Online Multiplayer"></label>
-          <label>이미 완성된 기능<input name="completed" placeholder="Player Controller"></label>
-          <label>보유 에셋<input name="assets" placeholder="캐릭터 스프라이트, SFX 팩"></label>
+        <div class="grid project-focus">
+          <label>필수 기능 <small>쉼표로 구분</small><input name="features" value="Boss Battle, Meta Progression"></label>
+          <label>프로젝트 설명 / 핵심 게임 루프<textarea name="description" rows="5">던전을 탐색하고 적을 처치해 아이템을 조합한 뒤 보스를 상대하는 짧은 전투 중심 로그라이크.</textarea></label>
         </div>
-        <label>외부 제약조건 <small>쉼표로 구분</small><input name="constraints" placeholder="무료 에셋만 사용, 모바일 60 FPS 우선"></label>
-        <label>프로젝트 설명 / 핵심 게임 루프<textarea name="description" rows="3">던전을 탐색하고 적을 처치해 아이템을 조합한 뒤 보스를 상대하는 짧은 전투 중심 로그라이크.</textarea></label>
-        <label class="toggle"><input name="useAi" type="checkbox" checked><span>Planning Agent 사용</span><small>API 키가 없거나 호출에 실패하면 규칙 기반 계획으로 안전하게 전환합니다.</small></label>
+        <details class="advanced-fields">
+          <summary><span>추가 설정</span><small>플랫폼, 마감, 보유 에셋 등을 더 정확히 반영합니다.</small></summary>
+          <div class="advanced-body">
+            <div class="grid three">
+              <label>대상 플랫폼<select name="platform"><option>PC</option><option>Mobile</option><option>Web</option><option>Console</option></select></label>
+              <label>콘텐츠 규모<select name="contentScale"><option>소규모</option><option>중규모</option><option>대규모</option></select></label>
+              <label>마감일<input name="deadline" type="date"></label>
+              <label>참고 게임 <small>쉼표로 구분</small><input name="references" placeholder="Hades, Enter the Gungeon"></label>
+              <label>제외할 기능<input name="excluded" placeholder="Online Multiplayer"></label>
+              <label>이미 완성된 기능<input name="completed" placeholder="Player Controller"></label>
+              <label>보유 에셋<input name="assets" placeholder="캐릭터 스프라이트, SFX 팩"></label>
+              <label>외부 제약조건 <small>쉼표로 구분</small><input name="constraints" placeholder="무료 에셋만 사용, 모바일 60 FPS 우선"></label>
+            </div>
+            <label class="toggle"><input name="useAi" type="checkbox" checked><span>Planning Agent 사용</span><small>호출에 실패하면 규칙 기반 계획으로 전환합니다.</small></label>
+          </div>
+        </details>
       </section>
-      <section class="panel form-panel"><div class="section-head"><span>02</span><div><h2>팀 구성</h2><p>숙련도는 0–5, 여러 항목은 쉼표로 구분합니다.</p></div><button class="ghost" type="button" id="add-member">+ 팀원 추가</button></div><div id="members"></div></section>
+      <section class="panel form-panel"><div class="section-head"><span>02</span><div><h2>팀 구성</h2><p>이름, 핵심 기술, 가용 시간만 먼저 입력하세요.</p></div><button class="ghost" type="button" id="add-member">+ 팀원 추가</button></div><div id="members"></div></section>
       <button class="primary" type="submit"><span>플랜 생성하기</span><b>→</b></button><p class="error" id="error" role="alert"></p>
     </form>
     <aside class="planning-progress" aria-live="polite" aria-label="계획 생성 진행 상태">
@@ -72,5 +80,5 @@
     </section>
     </div>
   </main>
-  <footer>GameWeaver <span>Single Agent · Dynamic Harness · Structured Output</span></footer><script src="/app.js"></script>
+  <footer>GameWeaver <span>Single Agent · Dynamic Harness · Structured Output</span></footer><script src="/app.js?v=2"></script>
 </body></html>
