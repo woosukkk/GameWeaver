@@ -462,6 +462,22 @@ footer { border-top: 1px solid #3a414b; }
 .member-core { grid-template-columns: .8fr 1.5fr .7fr; }
 .member-extra summary { display: flex; align-items: center; font-size: 13px; }
 .member-extra > .grid { padding: 2px 16px 16px; border-top: 1px solid var(--line); }
+.next-actions-panel { padding: 28px; margin-bottom: 18px; border-top: 4px solid var(--teal); }
+.next-actions-panel .panel-title { align-items: flex-end; }
+.next-actions-panel .eyebrow { margin: 0 0 8px; }
+.next-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.next-actions article { display: grid; grid-template-columns: auto 1fr; gap: 12px; padding: 18px; background: #eff1e8; border: 1px solid #d7d9cf; }
+.next-actions article > span { color: var(--accent); font: 800 12px monospace; }
+.next-actions h4 { margin: 0 0 10px; font-size: 15px; }
+.next-actions p { margin: 0 0 7px; color: var(--ink); font-size: 12px; }
+.next-actions small { color: var(--muted); line-height: 1.5; }
+.result-details { margin-top: 22px; }
+.result-details > summary { display: flex; align-items: center; gap: 12px; padding: 19px 22px; cursor: pointer; list-style: none; background: var(--nav); color: #fff; border-radius: 12px; font-weight: 800; }
+.result-details > summary::-webkit-details-marker { display: none; }
+.result-details > summary small { color: #aeb8c3; font-weight: 500; }
+.result-details > summary::after { content: '+'; margin-left: auto; color: #dce5d3; font-size: 21px; font-weight: 500; }
+.result-details[open] > summary::after { content: '−'; }
+.result-details-body { padding-top: 18px; }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes progress-in { from { opacity: 0; transform: translateY(8px); } }
@@ -497,6 +513,8 @@ footer { border-top: 1px solid #3a414b; }
   .project-core .project-name { grid-column: auto; }
   .advanced-fields summary { align-items: flex-start; }
   .advanced-fields summary small { display: none; }
+  .next-actions { grid-template-columns: 1fr; }
+  .result-details > summary small { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
