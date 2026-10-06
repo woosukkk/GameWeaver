@@ -1,0 +1,12 @@
+{
+  "context": ["Core Loop", "Combat", "Enemy", "Item", "Progression", "Randomization", "Replayability"],
+  "workflow": ["Project Analysis", "Core Loop Analysis", "System Task Generation", "Task Dependency Analysis", "Skill Matching", "Assignment", "Workload Validation"],
+  "roles": ["Gameplay Programmer", "Game Designer", "UI Designer"],
+  "tasks": [
+    {"name":"Player Controller","category":"Gameplay","required_skills":{"ENGINE":3,"Programming":3},"estimated_hours":8,"dependencies":[]},
+    {"name":"Core Combat","category":"Gameplay","required_skills":{"ENGINE":3,"Programming":4},"estimated_hours":12,"dependencies":["Player Controller"]},
+    {"name":"Enemy AI","category":"Enemy","required_skills":{"Programming":3,"AI":3},"estimated_hours":10,"dependencies":["Player Controller"]},
+    {"name":"Item & Progression","category":"System","required_skills":{"Game Design":3,"Programming":2},"estimated_hours":8,"dependencies":["Core Combat"]},
+    {"name":"HUD","category":"UI","required_skills":{"UI":3,"ENGINE":2},"estimated_hours":6,"dependencies":["Player Controller"]}
+  ]
+}

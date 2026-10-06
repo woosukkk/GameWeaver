@@ -1,0 +1,378 @@
+[
+  {
+    "source_id": "github-openra-openra-22608",
+    "title": "Zoom out further during play",
+    "topic": "issue",
+    "tags": [
+      "OpenRA/OpenRA",
+      "open",
+      "Idea/Wishlist"
+    ],
+    "excerpt": "Public issue metadata from OpenRA/OpenRA: Zoom out further during play",
+    "lesson": "Classification labels: Idea/Wishlist",
+    "citation": "https://github.com/OpenRA/OpenRA/issues/22608"
+  },
+  {
+    "source_id": "github-openra-openra-21279",
+    "title": "Stats for teams feature",
+    "topic": "issue",
+    "tags": [
+      "OpenRA/OpenRA",
+      "open",
+      "Idea/Wishlist",
+      "UI"
+    ],
+    "excerpt": "Public issue metadata from OpenRA/OpenRA: Stats for teams feature",
+    "lesson": "Classification labels: Idea/Wishlist, UI",
+    "citation": "https://github.com/OpenRA/OpenRA/issues/21279"
+  },
+  {
+    "source_id": "github-openra-openra-22587",
+    "title": "Sprite drawn without a blend span when sampler-limit flush occurs mid-batch, silently dropping sprites",
+    "topic": "issue",
+    "tags": [
+      "OpenRA/OpenRA",
+      "closed"
+    ],
+    "excerpt": "Public issue metadata from OpenRA/OpenRA: Sprite drawn without a blend span when sampler-limit flush occurs mid-batch, silently dropping sprites",
+    "lesson": "Classification labels: unlabeled",
+    "citation": "https://github.com/OpenRA/OpenRA/issues/22587"
+  },
+  {
+    "source_id": "github-openra-openra-22606",
+    "title": "Add team visualisation (drawing lines on map preview)",
+    "topic": "issue",
+    "tags": [
+      "OpenRA/OpenRA",
+      "open",
+      "Idea/Wishlist"
+    ],
+    "excerpt": "Public issue metadata from OpenRA/OpenRA: Add team visualisation (drawing lines on map preview)",
+    "lesson": "Classification labels: Idea/Wishlist",
+    "citation": "https://github.com/OpenRA/OpenRA/issues/22606"
+  },
+  {
+    "source_id": "github-openra-openra-22600",
+    "title": "Campaign progression: design and roadmap",
+    "topic": "issue",
+    "tags": [
+      "OpenRA/OpenRA",
+      "open",
+      "Feature",
+      "Meta"
+    ],
+    "excerpt": "Public issue metadata from OpenRA/OpenRA: Campaign progression: design and roadmap",
+    "lesson": "Classification labels: Feature, Meta",
+    "citation": "https://github.com/OpenRA/OpenRA/issues/22600"
+  },
+  {
+    "source_id": "github-openra-openra-22605",
+    "title": "Campaign progression: campaign browser and Lua-driven mission selection",
+    "topic": "issue",
+    "tags": [
+      "OpenRA/OpenRA",
+      "open",
+      "Scripting"
+    ],
+    "excerpt": "Public issue metadata from OpenRA/OpenRA: Campaign progression: campaign browser and Lua-driven mission selection",
+    "lesson": "Classification labels: Scripting",
+    "citation": "https://github.com/OpenRA/OpenRA/issues/22605"
+  },
+  {
+    "source_id": "github-openra-openra-22604",
+    "title": "Campaign progression: post-victory flow",
+    "topic": "issue",
+    "tags": [
+      "OpenRA/OpenRA",
+      "open"
+    ],
+    "excerpt": "Public issue metadata from OpenRA/OpenRA: Campaign progression: post-victory flow",
+    "lesson": "Classification labels: unlabeled",
+    "citation": "https://github.com/OpenRA/OpenRA/issues/22604"
+  },
+  {
+    "source_id": "github-openra-openra-22603",
+    "title": "Campaign progression: mission browser integration",
+    "topic": "issue",
+    "tags": [
+      "OpenRA/OpenRA",
+      "open"
+    ],
+    "excerpt": "Public issue metadata from OpenRA/OpenRA: Campaign progression: mission browser integration",
+    "lesson": "Classification labels: unlabeled",
+    "citation": "https://github.com/OpenRA/OpenRA/issues/22603"
+  },
+  {
+    "source_id": "github-openra-openra-22602",
+    "title": "Campaign progression: standard progress schema and shared campaign Lua boilerplate",
+    "topic": "issue",
+    "tags": [
+      "OpenRA/OpenRA",
+      "open",
+      "Scripting"
+    ],
+    "excerpt": "Public issue metadata from OpenRA/OpenRA: Campaign progression: standard progress schema and shared campaign Lua boilerplate",
+    "lesson": "Classification labels: Scripting",
+    "citation": "https://github.com/OpenRA/OpenRA/issues/22602"
+  },
+  {
+    "source_id": "github-openttd-openttd-16009",
+    "title": "[Crash]: Clicking in a bus",
+    "topic": "issue",
+    "tags": [
+      "OpenTTD/OpenTTD",
+      "open"
+    ],
+    "excerpt": "Public issue metadata from OpenTTD/OpenTTD: [Crash]: Clicking in a bus",
+    "lesson": "Classification labels: unlabeled",
+    "citation": "https://github.com/OpenTTD/OpenTTD/issues/16009"
+  },
+  {
+    "source_id": "github-openttd-openttd-15759",
+    "title": "[Bug]: Electric locomotives do not always run on standard railways when electric rails are re-enabled",
+    "topic": "issue",
+    "tags": [
+      "OpenTTD/OpenTTD",
+      "closed"
+    ],
+    "excerpt": "Public issue metadata from OpenTTD/OpenTTD: [Bug]: Electric locomotives do not always run on standard railways when electric rails are re-enabled",
+    "lesson": "Classification labels: unlabeled",
+    "citation": "https://github.com/OpenTTD/OpenTTD/issues/15759"
+  },
+  {
+    "source_id": "github-openttd-openttd-15824",
+    "title": "[Crash]: Game crash when a train is crashed while loading/unloading",
+    "topic": "issue",
+    "tags": [
+      "OpenTTD/OpenTTD",
+      "open"
+    ],
+    "excerpt": "Public issue metadata from OpenTTD/OpenTTD: [Crash]: Game crash when a train is crashed while loading/unloading",
+    "lesson": "Classification labels: unlabeled",
+    "citation": "https://github.com/OpenTTD/OpenTTD/issues/15824"
+  },
+  {
+    "source_id": "github-supertuxkart-stk-code-5873",
+    "title": "The Windows installer doesn't offer the required C++ runtime",
+    "topic": "issue",
+    "tags": [
+      "supertuxkart/stk-code",
+      "open",
+      "C: Build System & Compilation",
+      "P3: normal",
+      "T: regression"
+    ],
+    "excerpt": "Public issue metadata from supertuxkart/stk-code: The Windows installer doesn't offer the required C++ runtime",
+    "lesson": "Classification labels: C: Build System & Compilation, P3: normal, T: regression",
+    "citation": "https://github.com/supertuxkart/stk-code/issues/5873"
+  },
+  {
+    "source_id": "github-supertuxkart-stk-code-5855",
+    "title": "Allow translators to reorder inserted elements",
+    "topic": "issue",
+    "tags": [
+      "supertuxkart/stk-code",
+      "open",
+      "T: task",
+      "P3: normal",
+      "C: Other"
+    ],
+    "excerpt": "Public issue metadata from supertuxkart/stk-code: Allow translators to reorder inserted elements",
+    "lesson": "Classification labels: T: task, P3: normal, C: Other",
+    "citation": "https://github.com/supertuxkart/stk-code/issues/5855"
+  },
+  {
+    "source_id": "github-supertuxkart-stk-code-5853",
+    "title": "In splitscreen, changed camera parameters don't apply to all players",
+    "topic": "issue",
+    "tags": [
+      "supertuxkart/stk-code",
+      "open",
+      "T: defect",
+      "P4: minor",
+      "C: Camera"
+    ],
+    "excerpt": "Public issue metadata from supertuxkart/stk-code: In splitscreen, changed camera parameters don't apply to all players",
+    "lesson": "Classification labels: T: defect, P4: minor, C: Camera",
+    "citation": "https://github.com/supertuxkart/stk-code/issues/5853"
+  },
+  {
+    "source_id": "github-supertuxkart-stk-code-5822",
+    "title": "Don't require changing the base data files when modding",
+    "topic": "issue",
+    "tags": [
+      "supertuxkart/stk-code",
+      "open",
+      "T: enhancement",
+      "P2: major",
+      "C: Other"
+    ],
+    "excerpt": "Public issue metadata from supertuxkart/stk-code: Don't require changing the base data files when modding",
+    "lesson": "Classification labels: T: enhancement, P2: major, C: Other",
+    "citation": "https://github.com/supertuxkart/stk-code/issues/5822"
+  },
+  {
+    "source_id": "github-supertuxkart-stk-code-5814",
+    "title": "Use a tool such as clang-format to apply code style quickly and uniformly",
+    "topic": "issue",
+    "tags": [
+      "supertuxkart/stk-code",
+      "open",
+      "T: enhancement"
+    ],
+    "excerpt": "Public issue metadata from supertuxkart/stk-code: Use a tool such as clang-format to apply code style quickly and uniformly",
+    "lesson": "Classification labels: T: enhancement",
+    "citation": "https://github.com/supertuxkart/stk-code/issues/5814"
+  },
+  {
+    "source_id": "github-supertuxkart-stk-code-5874",
+    "title": "DoF strength varies according to render resolution",
+    "topic": "issue",
+    "tags": [
+      "supertuxkart/stk-code",
+      "open",
+      "T: defect",
+      "P3: normal",
+      "C: Graphics"
+    ],
+    "excerpt": "Public issue metadata from supertuxkart/stk-code: DoF strength varies according to render resolution",
+    "lesson": "Classification labels: T: defect, P3: normal, C: Graphics",
+    "citation": "https://github.com/supertuxkart/stk-code/issues/5874"
+  },
+  {
+    "source_id": "github-supertuxkart-stk-code-5845",
+    "title": "Anisotropic filtering on mobile devices",
+    "topic": "issue",
+    "tags": [
+      "supertuxkart/stk-code",
+      "open",
+      "T: defect",
+      "P3: normal",
+      "C: Graphics"
+    ],
+    "excerpt": "Public issue metadata from supertuxkart/stk-code: Anisotropic filtering on mobile devices",
+    "lesson": "Classification labels: T: defect, P3: normal, C: Graphics",
+    "citation": "https://github.com/supertuxkart/stk-code/issues/5845"
+  },
+  {
+    "source_id": "github-supertuxkart-stk-code-5800",
+    "title": "Depth of field samples colors from the opposite side of the screen",
+    "topic": "issue",
+    "tags": [
+      "supertuxkart/stk-code",
+      "closed",
+      "P3: normal",
+      "R: fixed / done",
+      "C: Graphics",
+      "T: confirmed defect"
+    ],
+    "excerpt": "Public issue metadata from supertuxkart/stk-code: Depth of field samples colors from the opposite side of the screen",
+    "lesson": "Classification labels: P3: normal, R: fixed / done, C: Graphics, T: confirmed defect",
+    "citation": "https://github.com/supertuxkart/stk-code/issues/5800"
+  },
+  {
+    "source_id": "github-supertuxkart-stk-code-5872",
+    "title": "Depth of field breaks for the skybox when camera far clip exceeds 2000",
+    "topic": "issue",
+    "tags": [
+      "supertuxkart/stk-code",
+      "closed",
+      "T: defect",
+      "P3: normal",
+      "R: fixed / done",
+      "C: Graphics"
+    ],
+    "excerpt": "Public issue metadata from supertuxkart/stk-code: Depth of field breaks for the skybox when camera far clip exceeds 2000",
+    "lesson": "Classification labels: T: defect, P3: normal, R: fixed / done, C: Graphics",
+    "citation": "https://github.com/supertuxkart/stk-code/issues/5872"
+  },
+  {
+    "source_id": "github-supertuxkart-stk-code-4888",
+    "title": "Android themed icons not supported",
+    "topic": "issue",
+    "tags": [
+      "supertuxkart/stk-code",
+      "open",
+      "C: Android / iOS"
+    ],
+    "excerpt": "Public issue metadata from supertuxkart/stk-code: Android themed icons not supported",
+    "lesson": "Classification labels: C: Android / iOS",
+    "citation": "https://github.com/supertuxkart/stk-code/issues/4888"
+  },
+  {
+    "source_id": "github-supertuxkart-stk-code-5869",
+    "title": "Support for OGLES 3.x",
+    "topic": "issue",
+    "tags": [
+      "supertuxkart/stk-code",
+      "open",
+      "T: task",
+      "P2: major",
+      "C: Graphics",
+      "C: Android / iOS"
+    ],
+    "excerpt": "Public issue metadata from supertuxkart/stk-code: Support for OGLES 3.x",
+    "lesson": "Classification labels: T: task, P2: major, C: Graphics, C: Android / iOS",
+    "citation": "https://github.com/supertuxkart/stk-code/issues/5869"
+  },
+  {
+    "source_id": "github-supertuxkart-stk-code-5862",
+    "title": "Make the \"plant in the wind\" movements obey world time",
+    "topic": "issue",
+    "tags": [
+      "supertuxkart/stk-code",
+      "open",
+      "T: task",
+      "P4: minor",
+      "C: Graphics"
+    ],
+    "excerpt": "Public issue metadata from supertuxkart/stk-code: Make the \"plant in the wind\" movements obey world time",
+    "lesson": "Classification labels: T: task, P4: minor, C: Graphics",
+    "citation": "https://github.com/supertuxkart/stk-code/issues/5862"
+  },
+  {
+    "source_id": "github-supertuxkart-stk-code-5868",
+    "title": "Add proper interactions between moving surfaces and objects",
+    "topic": "issue",
+    "tags": [
+      "supertuxkart/stk-code",
+      "open",
+      "T: enhancement",
+      "C: Physics",
+      "P2: major"
+    ],
+    "excerpt": "Public issue metadata from supertuxkart/stk-code: Add proper interactions between moving surfaces and objects",
+    "lesson": "Classification labels: T: enhancement, C: Physics, P2: major",
+    "citation": "https://github.com/supertuxkart/stk-code/issues/5868"
+  },
+  {
+    "source_id": "github-supertuxkart-stk-code-5867",
+    "title": "Don't apply very low FPS limits to menu screens",
+    "topic": "issue",
+    "tags": [
+      "supertuxkart/stk-code",
+      "open",
+      "T: enhancement",
+      "P4: minor",
+      "C: GUI"
+    ],
+    "excerpt": "Public issue metadata from supertuxkart/stk-code: Don't apply very low FPS limits to menu screens",
+    "lesson": "Classification labels: T: enhancement, P4: minor, C: GUI",
+    "citation": "https://github.com/supertuxkart/stk-code/issues/5867"
+  },
+  {
+    "source_id": "github-supertuxkart-stk-code-5866",
+    "title": "New shader for the bubble shield",
+    "topic": "issue",
+    "tags": [
+      "supertuxkart/stk-code",
+      "open",
+      "T: enhancement",
+      "P3: normal",
+      "C: Graphics"
+    ],
+    "excerpt": "Public issue metadata from supertuxkart/stk-code: New shader for the bubble shield",
+    "lesson": "Classification labels: T: enhancement, P3: normal, C: Graphics",
+    "citation": "https://github.com/supertuxkart/stk-code/issues/5866"
+  }
+]
